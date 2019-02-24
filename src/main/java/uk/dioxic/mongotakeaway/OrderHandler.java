@@ -48,7 +48,19 @@ public class OrderHandler {
             .contentType(APPLICATION_JSON)
             .body(Mono.justOrEmpty(request.pathVariable("id"))
                     .map(Long::valueOf)
-                    .flatMap(repository::findById), Order.class)
+                    .flatMap(repository::findById)
+                    .log(), Order.class)
+            .onErrorReturn(status(INTERNAL_SERVER_ERROR).build().block())
+            .switchIfEmpty(notFound().build());
+    }
+
+    public Mono<ServerResponse> deleteOrder(ServerRequest request) {
+        return accepted()
+            .contentType(APPLICATION_JSON)
+            .build(Mono.justOrEmpty(request.pathVariable("id"))
+                    .map(Long::valueOf)
+                    .flatMap(repository::deleteById)
+            )
             .onErrorReturn(status(INTERNAL_SERVER_ERROR).build().block())
             .switchIfEmpty(notFound().build());
     }

@@ -12,9 +12,11 @@ import org.springframework.context.annotation.PropertySource;
 public class GeneratorProperties {
 
     private int rate = 1;
+    private boolean randomise = true;
     private int customers = 1;
     private int subscriptionPause = 3;
     private int resubscriptionInterval = 1;
+    private int jobInterval = 10;
     private int pendingTime = 10;
     private int onrouteTime = 30;
     private int ttl = 60;

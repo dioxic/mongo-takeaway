@@ -35,7 +35,7 @@ Configuration:
             level: info
       - name: org.mongodb
         additivity: true
-        level: debug
+        level: info
         AppenderRef:
           - ref: File
       - name: org.mongodb.driver.protocol.command

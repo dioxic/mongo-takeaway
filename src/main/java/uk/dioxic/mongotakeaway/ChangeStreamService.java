@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.model.changestream.FullDocument;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.BsonDocument;
-import org.bson.BsonNull;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
@@ -18,14 +17,17 @@ import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import uk.dioxic.mongotakeaway.config.GeneratorProperties;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
@@ -47,6 +49,7 @@ public class ChangeStreamService {
     private ChangeStreamSubscriber<Order> csSubscriber;
     private GeneratorProperties properties;
     private volatile boolean resubscriptionScheduled = false;
+    private Lock resubscriptionLock = new ReentrantLock();
 
     public ChangeStreamService(ReactiveMongoTemplate reactiveTemplate, GeneratorProperties properties) {
         this.reactiveTemplate = reactiveTemplate;
@@ -55,7 +58,7 @@ public class ChangeStreamService {
         Executors.newSingleThreadScheduledExecutor()
                 .scheduleAtFixedRate(this::resubscribe,
                         1,
-                        Math.max(properties.getResubscriptionInterval(), properties.getSubscriptionPause()+1),
+                        properties.getResubscriptionInterval(),
                         TimeUnit.SECONDS);
     }
 
@@ -71,34 +74,40 @@ public class ChangeStreamService {
                                     .and("fullDocument._id").exists(true)
                                     .and("fullDocument.customerId").in(tokens)))).fullDocumentLookup(FullDocument.UPDATE_LOOKUP);
 
-            if (csSubscriber != null) {
-                csSubscriber.cancel();
-                csSubscriber.dispose();
-                csSubscriber.applyResumeToken(builder);
+            if (resubscriptionLock.tryLock()) {
+                try {
+                    if (csSubscriber != null) {
+                        csSubscriber.cancel();
+                        csSubscriber.dispose();
+                        csSubscriber.applyResumeToken(builder);
+                    }
+
+                    // deferred subscribe
+                    log.info("pausing {} sec before changestream creation", properties.getSubscriptionPause());
+                    Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+                        ChangeStreamOptions options = builder.build();
+
+                        reactiveTemplate
+                                .changeStream("test", "order", options, Order.class)
+                                .doOnNext(o -> log.trace("receiving {} notification for order={}", Objects.requireNonNull(o.getOperationType()).getValue(), Objects.requireNonNull(o.getBody())))
+                                .doOnSubscribe(x -> log.info("changestream created for customers {} with token={}", tokens, options.getResumeToken()
+                                        .filter(BsonValue::isDocument)
+                                        .map(BsonValue::asDocument)
+                                        .map(doc -> doc.get("_data"))
+                                        .filter(BsonValue::isString)
+                                        .map(BsonValue::asString)
+                                        .map(BsonString::getValue)
+                                        .orElse("null")))
+                                .doOnComplete(() -> log.info("changestream complete"))
+                                .doOnCancel(() -> log.info("changestream cancelled"))
+                                .doOnError(e -> log.error(e.getMessage()))
+                                .subscribe(csSubscriber = new ChangeStreamSubscriber<>(processor));
+
+                    }, properties.getSubscriptionPause(), TimeUnit.SECONDS);
+                } finally {
+                    resubscriptionLock.unlock();
+                }
             }
-
-            // deferred subscribe
-            log.info("pausing {} sec before changestream creation", properties.getSubscriptionPause());
-            Executors.newSingleThreadScheduledExecutor().schedule(() -> {
-                ChangeStreamOptions options = builder.build();
-
-                reactiveTemplate
-                    .changeStream("test", "order", options, Order.class)
-                    .doOnNext(o -> log.trace("receiving {} notification for order={}", Objects.requireNonNull(o.getOperationType()).getValue(), Objects.requireNonNull(o.getBody())))
-                    .doOnSubscribe(x -> log.info("changestream created for customers {} with token={}", tokens, options.getResumeToken()
-                            .filter(BsonValue::isDocument)
-                            .map(BsonValue::asDocument)
-                            .map(doc -> doc.get("_data"))
-                            .filter(BsonValue::isString)
-                            .map(BsonValue::asString)
-                            .map(BsonString::getValue)
-                            .orElse("null")))
-                    .doOnComplete(() -> log.info("changestream complete"))
-                    .doOnCancel(() -> log.info("changestream cancelled"))
-                    .doOnError(e -> log.error(e.getMessage()))
-                    .subscribe(csSubscriber = new ChangeStreamSubscriber<>(processor));
-
-            }, properties.getSubscriptionPause(), TimeUnit.SECONDS);
         }
     }
 
@@ -119,6 +128,8 @@ public class ChangeStreamService {
         log.info("unsubscribing customer {}", customer);
 
         subscriptionTokens.computeIfPresent(customer, (c, atomic) -> (atomic.decrementAndGet() <= 0) ? null : atomic);
+
+        resubscriptionScheduled = true;
     }
 
     class ChangeStreamSubscriber<T> extends BaseSubscriber<ChangeStreamEvent<T>> {
