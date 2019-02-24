@@ -12,7 +12,7 @@ import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 
 @Configuration
-@EnableReactiveMongoRepositories
+@EnableReactiveMongoRepositories("uk.dioxic.mongotakeaway")
 public class MongoConfig {
   @Autowired
   private MongoDbFactory mongoDbFactory;

@@ -43,3 +43,8 @@ Configuration:
         level: info
         AppenderRef:
           - ref: File
+      - name: org.springframework.web
+        additivity: true
+        level: debug
+        AppenderRef:
+          - ref: File

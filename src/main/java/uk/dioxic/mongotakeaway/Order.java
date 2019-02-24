@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Document
 public class Order {
     @Id
-    private Integer id;
+    private Long id;
     private Integer customerId;
     private State state;
     private LocalDateTime created;

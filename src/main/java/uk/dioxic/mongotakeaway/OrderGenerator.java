@@ -2,12 +2,19 @@ package uk.dioxic.mongotakeaway;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.model.Indexes;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.BooleanOperators;
+import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.index.IndexDefinition;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -20,6 +27,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Random;
 
 import static java.time.LocalDateTime.now;
+import static org.springframework.data.domain.Sort.Direction.*;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 import static org.springframework.data.mongodb.core.query.Update.update;
@@ -31,18 +39,16 @@ public class OrderGenerator implements CommandLineRunner {
 
     private static final ObjectMapper json = new ObjectMapper();
 
-    private MongoClient client;
-    private MongoTemplate mongoTemplate;
+    private ReactiveMongoTemplate mongoTemplate;
     private GeneratorProperties properties;
 
-    public OrderGenerator(MongoClient client, MongoTemplate mongoTemplate, GeneratorProperties properties) {
-        this.client = client;
+    public OrderGenerator(ReactiveMongoTemplate mongoTemplate, GeneratorProperties properties) {
         this.mongoTemplate = mongoTemplate;
         this.properties = properties;
     }
 
     private Flux<Order> orderFlux = Flux.generate(
-            () -> new Order(0,0, Order.State.PENDING, now(), now()),
+            () -> new Order(0L,0, Order.State.PENDING, now(), now()),
             (state, sink) -> {
                 Order order = new Order(state.getId()+1,
                         (state.getCustomerId()+1) % properties.getCustomers(),
@@ -57,44 +63,41 @@ public class OrderGenerator implements CommandLineRunner {
     public void updateJob() {
         log.debug("performing scheduled update tasks");
 
-        long modified = mongoTemplate.updateMulti(query(
-                where("state").is(Order.State.PENDING)
-                        .and("created").lt(now().minus(properties.getPendingTime(), ChronoUnit.SECONDS))),
-                update("state", Order.State.ONROUTE).currentDate("modified"),
-                Order.class)
-        .getModifiedCount();
+        mongoTemplate.updateMulti(query(
+            where("state").is(Order.State.PENDING)
+                    .and("created").lt(now().minus(properties.getPendingTime(), ChronoUnit.SECONDS))),
+            update("state", Order.State.ONROUTE).currentDate("modified"),
+            Order.class)
+            .map(UpdateResult::getModifiedCount)
+            .subscribe(modified -> log.debug("transitioned {} from {} to {}", modified, Order.State.PENDING, Order.State.ONROUTE));
 
-        log.debug("transitioned {} from {} to {}", modified, Order.State.PENDING, Order.State.ONROUTE);
+        mongoTemplate.updateMulti(query(
+            where("state").is(Order.State.ONROUTE)
+                    .and("modified").lt(now().minus(properties.getOnrouteTime(), ChronoUnit.SECONDS))),
+            update("state", Order.State.DELIVERED).currentDate("modified"),
+            Order.class)
+        .map(UpdateResult::getModifiedCount)
+        .subscribe(modified -> log.debug("transitioned {} from {} to {}", modified, Order.State.ONROUTE, Order.State.DELIVERED));
 
-        modified = mongoTemplate.updateMulti(query(
-                where("state").is(Order.State.ONROUTE)
-                        .and("modified").lt(now().minus(properties.getOnrouteTime(), ChronoUnit.SECONDS))),
-                update("state", Order.State.DELIVERED).currentDate("modified"),
-                Order.class)
-        .getModifiedCount();
-
-        log.debug("transitioned {} from {} to {}", modified, Order.State.ONROUTE, Order.State.DELIVERED);
-
-        modified = mongoTemplate.remove(query(where("modified").lt(now().minus(properties.getTtl(), ChronoUnit.SECONDS))),
-                Order.class)
-        .getDeletedCount();
-
-        log.debug("deleted {} old orders", modified);
+        mongoTemplate.remove(query(where("modified").lt(now().minus(properties.getTtl(), ChronoUnit.SECONDS))),
+            Order.class)
+                .map(DeleteResult::getDeletedCount)
+                .subscribe(deleted -> log.debug("deleted {} old orders", deleted));
     }
 
     @Override
     public void run(String... args) {
-        MongoCollection<Document> collection = client.getDatabase("test").getCollection("order");
 
         log.info("dropping existing orders");
-        Mono.from(collection.drop())
-            .block();
+        mongoTemplate.dropCollection(Order.class)
+                .block();
 
-        Mono.from(collection.createIndex(Indexes.ascending("created")))
-            .block();
+        log.info("create indexes on orders collection");
+        mongoTemplate.indexOps(Order.class).ensureIndex(new Index("created", ASC))
+                .block();
 
-        Mono.from(collection.createIndex(Indexes.ascending("modified")))
-            .block();
+        mongoTemplate.indexOps(Order.class).ensureIndex(new Index("modified", ASC))
+                .block();
 
         Random random = new Random();
 
@@ -111,7 +114,7 @@ public class OrderGenerator implements CommandLineRunner {
                     }
                 })
                 .doOnNext(order -> log.trace("taking {}", order))
-                .map(mongoTemplate::insert)
+                .flatMap(mongoTemplate::insert)
                 .onErrorContinue((e, o) -> {
                         e.printStackTrace();
                         log.warn("error [{}] writing order", e.getMessage());
