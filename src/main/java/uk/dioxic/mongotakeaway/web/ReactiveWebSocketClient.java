@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 import java.time.Duration;
 
-public class ReactiveJavaClientWebSocket {
+public class ReactiveWebSocketClient {
 
     public static void main(String[] args) {
 		  

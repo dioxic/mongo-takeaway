@@ -12,7 +12,7 @@ import org.springframework.web.reactive.socket.WebSocketSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import uk.dioxic.mongotakeaway.ChangeStreamService;
-import uk.dioxic.mongotakeaway.DocumentUtil;
+import uk.dioxic.mongotakeaway.util.DocumentUtil;
 import uk.dioxic.mongotakeaway.config.GeneratorProperties;
 
 import java.util.LinkedList;

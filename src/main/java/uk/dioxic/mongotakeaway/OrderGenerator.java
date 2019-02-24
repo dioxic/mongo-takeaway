@@ -100,8 +100,6 @@ public class OrderGenerator implements CommandLineRunner {
 
         log.info("generating new orders (rate={}/s)", properties.getRate());
         orderFlux
-                .limitRate(1)
-//                .publishOn(Schedulers.elastic())
 //                .delayElements(Duration.ofMillis(100))
                 .doOnNext(doc -> {
                     if (properties.getRate() > 0) {

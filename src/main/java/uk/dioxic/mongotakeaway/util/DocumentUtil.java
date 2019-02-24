@@ -1,13 +1,14 @@
-package uk.dioxic.mongotakeaway;
+package uk.dioxic.mongotakeaway.util;
 
 import org.bson.Document;
-import org.bson.codecs.BsonValueCodecProvider;
-import org.bson.codecs.DocumentCodec;
-import org.bson.codecs.DocumentCodecProvider;
-import org.bson.codecs.ValueCodecProvider;
+import org.bson.codecs.*;
+import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.jsr310.LocalDateTimeCodec;
 import org.bson.json.JsonWriterSettings;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
@@ -39,4 +40,29 @@ public class DocumentUtil {
         return DEFAULT_REGISTRY;
     }
 
+    public static class ExtendedCodecProvider implements CodecProvider {
+
+        private final Map<Class<?>, Codec<?>> codecs = new HashMap<>();
+
+        /**
+         * A provider of Codecs for extended types.
+         */
+        public ExtendedCodecProvider(Codec... codecs) {
+            for (Codec<?> codec : codecs) {
+                addCodec(codec);
+            }
+        }
+
+        public ExtendedCodecProvider() {}
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> Codec<T> get(Class<T> clazz, CodecRegistry registry) {
+            return (Codec<T>) codecs.get(clazz);
+        }
+
+        private <T> void addCodec(final Codec<T> codec) {
+            codecs.put(codec.getEncoderClass(), codec);
+        }
+    }
 }
