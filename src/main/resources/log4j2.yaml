@@ -1,5 +1,5 @@
 Configuration:
-  status: warn
+  status: info
   name: RuntimeLog4j2Config
 
   Properties:
@@ -29,7 +29,7 @@ Configuration:
     Logger:
       - name: uk.dioxic.mongotakeaway
         additivity: true
-        level: trace
+        level: debug
         AppenderRef:
           - ref: STDOUT
             level: info

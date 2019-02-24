@@ -29,5 +29,29 @@ hs_err_pid*
 \.idea/
 target\
 \target/
-
 target/
+
+# reactjs build files
+src/main/app/node_modules\
+\src/main/app/node_modules/
+
+# dependencies
+/src/main/app/node_modules
+/src/main/app/node
+/.pnp
+.pnp.js
+
+# testing
+/src/main/app/coverage
+
+# production
+/src/main/app/build
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*

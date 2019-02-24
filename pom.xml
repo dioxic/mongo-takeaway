@@ -17,6 +17,10 @@
 	<properties>
 		<java.version>11</java.version>
 		<maven.compiler.release>11</maven.compiler.release>
+		<frontendSrcDir>${project.basedir}/src/main/app</frontendSrcDir>
+		<node.version>v11.10.0</node.version>
+		<npm.version>v6.7.0</npm.version>
+		<start-class>uk.dioxic.mongotakeaway.TakeawayApplication</start-class>
 	</properties>
 
 	<dependencies>
@@ -114,29 +118,87 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.1</version>
+				<groupId>com.github.eirslett</groupId>
+				<artifactId>frontend-maven-plugin</artifactId>
+				<version>1.7.5</version>
+
+				<configuration>
+					<nodeVersion>${node.version}</nodeVersion>
+					<!--<npmVersion>${npm.version}</npmVersion>-->
+					<workingDirectory>${frontendSrcDir}</workingDirectory>
+					<!--<installDirectory>${project.build.directory}</installDirectory>-->
+					<installDirectory>${frontendSrcDir}</installDirectory>
+				</configuration>
+
 				<executions>
 					<execution>
-						<phase>package</phase>
+						<id>install-frontend-tools</id>
 						<goals>
-							<goal>shade</goal>
+							<goal>install-node-and-npm</goal>
+						</goals>
+					</execution>
+
+					<execution>
+						<id>npm-install</id>
+						<goals>
+							<goal>npm</goal>
 						</goals>
 						<configuration>
-							<transformers>
-								<!-- add Main-Class to manifest file -->
-								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>uk.dioxic.mongotakeaway.TakeawayApplication</mainClass>
-								</transformer>
-							</transformers>
+							<arguments>install</arguments>
+						</configuration>
+					</execution>
+
+					<execution>
+						<id>build-frontend</id>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<phase>prepare-package</phase>
+						<configuration>
+							<arguments>run build</arguments>
 						</configuration>
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>position-react-build</id>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<phase>prepare-package</phase>
+						<configuration>
+							<outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${frontendSrcDir}/build</directory>
+									<filtering>false</filtering>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!--<plugin>-->
+				<!--<groupId>org.apache.maven.plugins</groupId>-->
+				<!--<artifactId>maven-shade-plugin</artifactId>-->
+				<!--<version>3.2.1</version>-->
+				<!--<executions>-->
+					<!--<execution>-->
+						<!--<phase>package</phase>-->
+						<!--<goals>-->
+							<!--<goal>shade</goal>-->
+						<!--</goals>-->
+					<!--</execution>-->
+				<!--</executions>-->
+			<!--</plugin>-->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
