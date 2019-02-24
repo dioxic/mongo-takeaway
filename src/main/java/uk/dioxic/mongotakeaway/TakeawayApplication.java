@@ -28,6 +28,7 @@ public class TakeawayApplication {
 				.GET("/order", accept(APPLICATION_JSON), handler::listOrders)
 				.POST("/order", handler::createOrder)
 				.GET("/", req -> ok().body(fromResource(new ClassPathResource("static/client-websocket.html"))))
+				.GET("/react", req -> ok().body(fromResource(new ClassPathResource("static/index.html"))))
 				.build();
 	}
 

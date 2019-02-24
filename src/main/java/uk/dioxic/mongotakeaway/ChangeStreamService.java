@@ -63,10 +63,10 @@ public class ChangeStreamService {
     }
 
     private void resubscribe() {
-        if (!subscriptionTokens.isEmpty() && resubscriptionScheduled) {
+        if (resubscriptionScheduled && resubscriptionLock.tryLock()) {
             resubscriptionScheduled = false;
-            Set<Integer> tokens = new HashSet<>(subscriptionTokens.keySet());
 
+            Set<Integer> tokens = new HashSet<>(subscriptionTokens.keySet());
             ChangeStreamOptions.ChangeStreamOptionsBuilder builder = ChangeStreamOptions.builder()
                     .filter(newAggregation(match(
                             where("operationType").in("insert", "update")
@@ -74,14 +74,14 @@ public class ChangeStreamService {
                                     .and("fullDocument._id").exists(true)
                                     .and("fullDocument.customerId").in(tokens)))).fullDocumentLookup(FullDocument.UPDATE_LOOKUP);
 
-            if (resubscriptionLock.tryLock()) {
-                try {
-                    if (csSubscriber != null) {
-                        csSubscriber.cancel();
-                        csSubscriber.dispose();
-                        csSubscriber.applyResumeToken(builder);
-                    }
+            try {
+                if (csSubscriber != null) {
+                    csSubscriber.cancel();
+                    csSubscriber.dispose();
+                    csSubscriber.applyResumeToken(builder);
+                }
 
+                if (!tokens.isEmpty()) {
                     // deferred subscribe
                     log.info("pausing {} sec before changestream creation", properties.getSubscriptionPause());
                     Executors.newSingleThreadScheduledExecutor().schedule(() -> {
@@ -104,9 +104,10 @@ public class ChangeStreamService {
                                 .subscribe(csSubscriber = new ChangeStreamSubscriber<>(processor));
 
                     }, properties.getSubscriptionPause(), TimeUnit.SECONDS);
-                } finally {
-                    resubscriptionLock.unlock();
                 }
+            }
+            finally {
+                resubscriptionLock.unlock();
             }
         }
     }
