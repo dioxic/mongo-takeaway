@@ -21,13 +21,7 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 import static org.springframework.web.reactive.function.server.ServerResponse.*;
 
 @SpringBootApplication
-public class TakeawayApplication implements CommandLineRunner {
-
-	@Autowired
-	private GeneratorProperties properties;
-
-	@Autowired
-	private	OrderGenerator generator;
+public class TakeawayApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(TakeawayApplication.class, args);
@@ -44,20 +38,4 @@ public class TakeawayApplication implements CommandLineRunner {
 				.build();
 	}
 
-	@Override
-	public void run(String... args) {
-		if (properties.getJobInterval() > 0) {
-			Executors.newSingleThreadScheduledExecutor()
-					.scheduleAtFixedRate(generator::scheduledJob,
-							1,
-							properties.getJobInterval(),
-							TimeUnit.SECONDS);
-		}
-		if (properties.getRate() != 0) {
-			Executors.newSingleThreadScheduledExecutor()
-					.schedule(generator::generateJob,
-							1,
-							TimeUnit.SECONDS);
-		}
-	}
 }

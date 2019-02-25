@@ -7,8 +7,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
+import static java.time.LocalDateTime.now;
+
 @Data
-@AllArgsConstructor
 @Document
 public class Order {
     @Id
@@ -17,6 +18,14 @@ public class Order {
     private State state;
     private LocalDateTime created;
     private LocalDateTime modified;
+
+    Order(Long id, Integer customerId) {
+        this.id = id;
+        this.customerId = customerId;
+        this.state = State.PENDING;
+        this.created = now();
+        this.modified = now();
+    }
 
     enum State {
         PENDING, ONROUTE, DELIVERED

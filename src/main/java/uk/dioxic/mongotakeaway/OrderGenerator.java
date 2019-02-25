@@ -4,10 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Component;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
@@ -37,9 +35,22 @@ public class OrderGenerator {
     public OrderGenerator(ReactiveMongoTemplate mongoTemplate, GeneratorProperties properties) {
         this.mongoTemplate = mongoTemplate;
         this.properties = properties;
+        if (properties.getJobInterval() > 0) {
+            Executors.newSingleThreadScheduledExecutor()
+                    .scheduleAtFixedRate(this::runScheduledJob,
+                            1,
+                            properties.getJobInterval(),
+                            TimeUnit.SECONDS);
+        }
+        if (properties.getRate() != 0) {
+            Executors.newSingleThreadScheduledExecutor()
+                    .schedule(this::runGenerateJob,
+                            1,
+                            TimeUnit.SECONDS);
+        }
     }
 
-    void scheduledJob() {
+    void runScheduledJob() {
         log.debug("performing scheduled tasks");
 
         mongoTemplate.updateMulti(query(
@@ -64,7 +75,7 @@ public class OrderGenerator {
                 .subscribe(deleted -> log.debug("deleted {} old orders", deleted));
     }
 
-    void generateJob() {
+    void runGenerateJob() {
 
         log.info("dropping existing orders");
         mongoTemplate.dropCollection(Order.class)
@@ -94,13 +105,10 @@ public class OrderGenerator {
 
         log.info("generating new orders (rate={}/s)", properties.getRate());
         Flux.generate(
-            () -> new Order(0L,0, Order.State.PENDING, now(), now()),
+            () -> new Order(0L,0),
             (state, sink) -> {
                 Order order = new Order(state.getId()+1,
-                        (state.getCustomerId()+1) % properties.getCustomers(),
-                        Order.State.PENDING,
-                        now(),
-                        now());
+                        (state.getCustomerId()+1) % properties.getCustomers());
                 sink.next(order);
                 return order;
         })
