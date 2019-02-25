@@ -121,7 +121,7 @@ public class ChangeStreamService {
         });
     }
 
-    class ChangeStreamSubscriber<T> extends BaseSubscriber<ChangeStreamEvent<T>> {
+    private class ChangeStreamSubscriber<T> extends BaseSubscriber<ChangeStreamEvent<T>> {
         private DirectProcessor<ChangeStreamEvent<T>> processor;
         private BsonValue resumeToken;
 

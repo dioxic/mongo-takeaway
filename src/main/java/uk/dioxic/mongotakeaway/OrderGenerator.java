@@ -28,8 +28,6 @@ import static org.springframework.data.mongodb.core.query.Update.update;
 @Component
 public class OrderGenerator {
 
-    private static final ObjectMapper json = new ObjectMapper();
-
     private ReactiveMongoTemplate mongoTemplate;
     private GeneratorProperties properties;
 

@@ -21,7 +21,7 @@ public class ReactiveWebSocketClient {
               .map(WebSocketMessage::getPayloadAsText)
               .log())
             .then())
-            .block(Duration.ofSeconds(10L));
+            .block(Duration.ofSeconds(20L));
     }
 
 }
