@@ -1,5 +1,6 @@
 package uk.dioxic.mongotakeaway;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -13,6 +14,7 @@ import static org.springframework.web.reactive.function.BodyInserters.fromObject
 import static org.springframework.web.reactive.function.server.ServerResponse.*;
 
 @SuppressWarnings("ALL")
+@Slf4j
 @Component
 public class OrderHandler {
 
@@ -35,6 +37,7 @@ public class OrderHandler {
 
     public Mono<ServerResponse> createOrder(ServerRequest request) {
         return request.bodyToMono(Order.class)
+            .doOnNext(order -> log.info("create order {}", order))
             .flatMap(repository::save)
             .flatMap(order -> created(URI.create("/order/" + order.getId()))
                     .contentType(APPLICATION_JSON)

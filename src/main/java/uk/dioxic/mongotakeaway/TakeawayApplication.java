@@ -20,15 +20,4 @@ public class TakeawayApplication {
 		SpringApplication.run(TakeawayApplication.class, args);
 	}
 
-	@Bean
-	RouterFunction<ServerResponse> orderRoute(OrderHandler handler) {
-		return route()
-				.GET("/order/{id}", accept(APPLICATION_JSON), handler::getOrder)
-				.GET("/order", accept(APPLICATION_JSON), handler::listOrders)
-				.POST("/order", handler::createOrder)
-				.GET("/", req -> ok().body(fromResource(new ClassPathResource("static/client-websocket.html"))))
-				.GET("/react", req -> ok().body(fromResource(new ClassPathResource("static/index.html"))))
-				.build();
-	}
-
 }

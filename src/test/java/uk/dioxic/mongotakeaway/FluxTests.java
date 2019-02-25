@@ -1,15 +1,15 @@
 package uk.dioxic.mongotakeaway;
 
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.ChangeStreamOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import reactor.core.publisher.ConnectableFlux;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
@@ -17,8 +17,9 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.newA
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 @Slf4j
+@Disabled
 @DataMongoTest
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 public class FluxTests {
 
     @Autowired
@@ -37,13 +38,9 @@ public class FluxTests {
                 .changeStream("test", "order", builder.build(), Order.class)
                 .doOnSubscribe(x -> log.info("subscribed to order feed")).publish();
 
-
-
         flux.connect();
 
         flux.subscribe(System.out::println);
-
-//        flux.subscribe(System.out::println);
 
         flux.blockLast();
 
