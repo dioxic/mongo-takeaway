@@ -38,12 +38,6 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 @Service
 public class ChangeStreamService {
 
-    private static final ObjectMapper json = new ObjectMapper();
-    private static final Criteria filterCriteria = where("operationType").is("insert")
-            .and("ns.coll").is("order")
-            .and("fullDocument._id").exists(true);
-    private static final Aggregation csPipeline = newAggregation(match(filterCriteria));
-
     private DirectProcessor<ChangeStreamEvent<Order>> processor;
     private ReactiveMongoTemplate reactiveTemplate;
     private ConcurrentHashMap<Integer, AtomicInteger> externalSubscriptions = new ConcurrentHashMap<>();
@@ -117,17 +111,13 @@ public class ChangeStreamService {
             log.info("subscribing customer {}", customer);
             resubscriptionScheduled = true;
             return new AtomicInteger(0);
-        });
-        externalSubscriptions.computeIfPresent(customer, (c, atomic) -> {
-            atomic.incrementAndGet();
-            return atomic;
-        });
+        }).incrementAndGet();
 
         return processor;
     }
 
     public void unsubscribe(Integer customer) {
-        AtomicInteger value = externalSubscriptions.computeIfPresent(customer, (c, atomic) -> {
+        externalSubscriptions.computeIfPresent(customer, (c, atomic) -> {
             if (atomic.decrementAndGet() <= 0) {
                 log.info("unsubscribing customer {}", customer);
                 resubscriptionScheduled = true;

@@ -27,8 +27,7 @@ import static org.springframework.data.mongodb.core.query.Update.update;
 
 @Slf4j
 @Component
-@EnableScheduling
-public class OrderGenerator implements CommandLineRunner {
+public class OrderGenerator {
 
     private static final ObjectMapper json = new ObjectMapper();
 
@@ -38,28 +37,9 @@ public class OrderGenerator implements CommandLineRunner {
     public OrderGenerator(ReactiveMongoTemplate mongoTemplate, GeneratorProperties properties) {
         this.mongoTemplate = mongoTemplate;
         this.properties = properties;
-        if (properties.getJobInterval() > 0) {
-            Executors.newSingleThreadScheduledExecutor()
-                    .scheduleAtFixedRate(this::scheduledJob,
-                            1,
-                            properties.getJobInterval(),
-                            TimeUnit.SECONDS);
-        }
     }
 
-    private Flux<Order> orderFlux = Flux.generate(
-            () -> new Order(0L,0, Order.State.PENDING, now(), now()),
-            (state, sink) -> {
-                Order order = new Order(state.getId()+1,
-                        (state.getCustomerId()+1) % properties.getCustomers(),
-                        Order.State.PENDING,
-                        now(),
-                        now());
-                sink.next(order);
-                return order;
-            });
-
-    private void scheduledJob() {
+    void scheduledJob() {
         log.debug("performing scheduled tasks");
 
         mongoTemplate.updateMulti(query(
@@ -84,8 +64,7 @@ public class OrderGenerator implements CommandLineRunner {
                 .subscribe(deleted -> log.debug("deleted {} old orders", deleted));
     }
 
-    @Override
-    public void run(String... args) {
+    void generateJob() {
 
         log.info("dropping existing orders");
         mongoTemplate.dropCollection(Order.class)
