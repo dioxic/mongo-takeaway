@@ -7,20 +7,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import uk.dioxic.mongotakeaway.ChangeStreamService;
 import uk.dioxic.mongotakeaway.config.GeneratorProperties;
 import uk.dioxic.mongotakeaway.util.DocumentUtil;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
-@Component("ReactiveWebSocketHandler")
+@Component
 public class ReactiveWebSocketHandler implements WebSocketHandler {
 
     private ChangeStreamService changeStreamService;
@@ -29,31 +25,6 @@ public class ReactiveWebSocketHandler implements WebSocketHandler {
     public ReactiveWebSocketHandler(ChangeStreamService changeStreamService, GeneratorProperties properties) {
         this.changeStreamService = changeStreamService;
         this.properties = properties;
-    }
-
-    public void testFibonacciFluxSink() {
-        Flux<Long> fibonacciGenerator = Flux.create(e -> {
-            long current = 1, prev = 0;
-            AtomicBoolean stop = new AtomicBoolean(false);
-            e.onDispose(() -> {
-                stop.set(true);
-                System.out.println("******* Stop Received ****** ");
-            });
-            while (current > 0) {
-                e.next(current);
-                System.out.println("generated " + current);
-                long next = current + prev;
-                prev = current;
-                current = next;
-            }
-            e.complete();
-        });
-        List<Long> fibonacciSeries = new LinkedList<>();
-        fibonacciGenerator.take(50).subscribe(t -> {
-            System.out.println("consuming " + t);
-            fibonacciSeries.add(t);
-        });
-        System.out.println(fibonacciSeries);
     }
 
     @Override

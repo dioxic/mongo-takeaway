@@ -1,4 +1,4 @@
-package uk.dioxic.mongotakeaway;
+package uk.dioxic.mongotakeaway.web;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
