@@ -6,6 +6,7 @@ import com.mongodb.client.result.UpdateResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.index.IndexDefinition;
 import org.springframework.stereotype.Component;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
@@ -50,40 +51,51 @@ public class OrderGenerator {
         }
     }
 
-    void runScheduledJob() {
+    public void runScheduledJob() {
         log.debug("performing scheduled tasks");
 
-        mongoTemplate.updateMulti(query(
-            where("state").is(Order.State.PENDING)
-                    .and("created").lt(now().minus(properties.getPendingTime(), ChronoUnit.SECONDS))),
-            update("state", Order.State.ONROUTE).currentDate("modified"),
-            Order.class)
-            .map(UpdateResult::getModifiedCount)
-            .subscribe(modified -> log.debug("transitioned {} from {} to {}", modified, Order.State.PENDING, Order.State.ONROUTE));
+        if (properties.getPendingTime() > 0) {
+            mongoTemplate.updateMulti(query(
+                    where("state").is(Order.State.PENDING)
+                            .and("created").lt(now().minus(properties.getPendingTime(), ChronoUnit.SECONDS))),
+                    update("state", Order.State.ONROUTE).currentDate("modified"),
+                    Order.class)
+                    .map(UpdateResult::getModifiedCount)
+                    .subscribe(modified -> log.debug("transitioned {} from {} to {}", modified, Order.State.PENDING, Order.State.ONROUTE));
+        }
 
-        mongoTemplate.updateMulti(query(
-            where("state").is(Order.State.ONROUTE)
-                    .and("modified").lt(now().minus(properties.getOnrouteTime(), ChronoUnit.SECONDS))),
-            update("state", Order.State.DELIVERED).currentDate("modified"),
-            Order.class)
-        .map(UpdateResult::getModifiedCount)
-        .subscribe(modified -> log.debug("transitioned {} from {} to {}", modified, Order.State.ONROUTE, Order.State.DELIVERED));
+        if (properties.getOnrouteTime() > 0) {
+            mongoTemplate.updateMulti(query(
+                    where("state").is(Order.State.ONROUTE)
+                            .and("modified").lt(now().minus(properties.getOnrouteTime(), ChronoUnit.SECONDS))),
+                    update("state", Order.State.DELIVERED).currentDate("modified"),
+                    Order.class)
+                    .map(UpdateResult::getModifiedCount)
+                    .subscribe(modified -> log.debug("transitioned {} from {} to {}", modified, Order.State.ONROUTE, Order.State.DELIVERED));
+        }
 
-        mongoTemplate.remove(query(where("modified").lt(now().minus(properties.getTtl(), ChronoUnit.SECONDS))),
-            Order.class)
-                .map(DeleteResult::getDeletedCount)
-                .subscribe(deleted -> log.debug("deleted {} old orders", deleted));
+        if (properties.getTtl() > 0) {
+            mongoTemplate.remove(query(where("modified").lt(now().minus(properties.getTtl(), ChronoUnit.SECONDS))),
+                    Order.class)
+                    .map(DeleteResult::getDeletedCount)
+                    .subscribe(deleted -> log.debug("deleted {} old orders", deleted));
+        }
     }
 
-    void runGenerateJob() {
-
+    public void runGenerateJob() {
         log.info("dropping existing orders");
         mongoTemplate.dropCollection(Order.class)
                 .block();
 
+        Index modifyIdx= new Index("modified", ASC);
+        if (properties.getTtl() > 0) {
+            // technically redundant due to batch job (but why not)
+            modifyIdx = modifyIdx.expire(properties.getTtl()+1, TimeUnit.SECONDS);
+        }
+
         log.info("create indexes on orders collection");
         mongoTemplate.indexOps(Order.class).ensureIndex(new Index("created", ASC))
-                .and(mongoTemplate.indexOps(Order.class).ensureIndex(new Index("modified", ASC)))
+                .and(mongoTemplate.indexOps(Order.class).ensureIndex(modifyIdx))
                 .block();
 
         Random random = new Random();
