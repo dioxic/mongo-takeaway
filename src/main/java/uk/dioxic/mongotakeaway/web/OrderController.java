@@ -21,18 +21,18 @@ public class OrderController {
         return repository.findAll();
     }
 
-    @GetMapping("order/{id}")
+    @GetMapping(path = "order/{id}", produces = "application/json")
     public Mono<Order> findById(@PathVariable long id) {
         return repository.findById(id);
     }
 
-    @DeleteMapping("order/{id}")
+    @DeleteMapping(path = "order/{id}", produces = "application/json")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Mono<Void> deleteById(@PathVariable long id) {
         return repository.deleteById(id);
     }
 
-    @PostMapping(path = "order", consumes = "application/json")
+    @PostMapping(path = "order", consumes = "application/json", produces = "application/json")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<Order> save(@RequestBody Order order) {
         return repository.save(order);
