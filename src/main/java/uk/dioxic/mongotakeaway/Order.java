@@ -1,6 +1,7 @@
 package uk.dioxic.mongotakeaway;
 
 import lombok.Data;
+import lombok.Getter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -18,7 +19,19 @@ public class Order {
     private LocalDateTime created;
     private LocalDateTime modified;
 
-    Order(Long id, Integer customerId) {
+    public Order() {
+
+    }
+
+    public Order(Order order) {
+        this.id = order.id;
+        this.customerId = order.customerId;
+        this.state = order.state;
+        this.created = order.created;
+        this.modified = order.modified;
+    }
+
+    public Order(Long id, Integer customerId) {
         this.id = id;
         this.customerId = customerId;
         this.state = State.PENDING;

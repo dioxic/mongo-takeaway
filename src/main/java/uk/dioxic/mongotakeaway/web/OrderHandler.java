@@ -17,7 +17,7 @@ import static org.springframework.web.reactive.function.server.ServerResponse.*;
 
 @SuppressWarnings("ALL")
 @Slf4j
-@Component
+@Deprecated
 public class OrderHandler {
 
     private OrderRepository repository;

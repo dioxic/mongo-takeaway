@@ -4,7 +4,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("web endpoint tests")
+@DisplayName("simple tests")
 public class SimpleTest {
 
     @Test

@@ -6,16 +6,18 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-@Disabled
 @ExtendWith(SpringExtension.class)
 @DisplayName("web endpoint tests")
 @WebFluxTest
@@ -27,10 +29,13 @@ public class TakeawayApplicationTest {
 	@Autowired
 	private ApplicationContext context;
 
+	@MockBean
+	private OrderRepository repository;
+
 	@BeforeEach
-	public void setUp()
-	{
-		webTestClient = WebTestClient.bindToApplicationContext(context).build();
+	public void setUp() {
+		//    supposed to bind the router functions but didn't work
+		//		webTestClient = WebTestClient.bindToApplicationContext(context).build();
 	}
 
 	@Test
@@ -44,17 +49,49 @@ public class TakeawayApplicationTest {
 	}
 
 	@Test
-	public void orders() {
+	public void findAll() {
+		Mockito.when(repository.findAll()).thenReturn(Flux.just(
+				new Order(1L, 0),
+				new Order(2L, 0),
+				new Order(3L, 0)));
+
 		webTestClient.get().uri("/order")
 //				.accept(MediaType.APPLICATION_JSON_UTF8)
 				.exchange()
-				.expectStatus().isOk();
+				.expectStatus().isOk()
+				.expectBodyList(Order.class)
+					.hasSize(3)
+					.value(orders -> orders.forEach(order -> log.info(order.toString())));
+
+		Mockito.verify(repository).findAll();
 	}
 
 	@Test
-	public void saveOrder() {
+	public void findById() {
+		Order order = new Order(1L, 0);
 
-		Order order = new Order(0L, 99);
+		Mockito.when(repository.findById(order.getId()))
+				.thenReturn(Mono.just(order));
+
+		webTestClient.get().uri("/order/"+ order.getId())
+				.accept(MediaType.APPLICATION_JSON_UTF8)
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody(Order.class)
+				.isEqualTo(order);
+
+		Mockito.verify(repository).findById(order.getId());
+	}
+
+	@Test
+	public void save() {
+
+		Order order = new Order(null, 99);
+		Order orderWithId = new Order(order);
+		orderWithId.setId(1L);
+
+		Mockito.when(repository.save(order))
+				.thenReturn(Mono.just(orderWithId));
 
 		webTestClient.post().uri("/order")
 				.contentType(MediaType.APPLICATION_JSON_UTF8)
@@ -62,9 +99,21 @@ public class TakeawayApplicationTest {
 				.body(Mono.just(order), Order.class)
 				.exchange()
 				.expectStatus().isCreated()
-				.expectBody()
-					.jsonPath("$.id").isNotEmpty()
-					.jsonPath("$.customerId").isEqualTo(99);
+				.expectBody(Order.class)
+				.isEqualTo(orderWithId);
+
+	}
+
+	@Test
+	public void delete() {
+
+		Mockito.when(repository.deleteById(1L))
+				.thenReturn(Mono.empty());
+
+		webTestClient.delete().uri("/order/1")
+				.accept(MediaType.APPLICATION_JSON_UTF8)
+				.exchange()
+				.expectStatus().isAccepted();
 
 	}
 
