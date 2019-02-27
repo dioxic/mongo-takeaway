@@ -16,23 +16,23 @@ public class OrderController {
         this.repository = repository;
     }
 
-    @GetMapping
+    @GetMapping(path = "/order", produces = "application/json")
     public Flux<Order> findAll() {
         return repository.findAll();
     }
 
-    @GetMapping(path = "order/{id}", produces = "application/json")
+    @GetMapping(path = "/order/{id}", produces = "application/json")
     public Mono<Order> findById(@PathVariable long id) {
         return repository.findById(id);
     }
 
-    @DeleteMapping(path = "order/{id}", produces = "application/json")
+    @DeleteMapping(path = "/order/{id}", produces = "application/json")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Mono<Void> deleteById(@PathVariable long id) {
         return repository.deleteById(id);
     }
 
-    @PostMapping(path = "order", consumes = "application/json", produces = "application/json")
+    @PostMapping(path = "/order", consumes = "application/json", produces = "application/json")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<Order> save(@RequestBody Order order) {
         return repository.save(order);
