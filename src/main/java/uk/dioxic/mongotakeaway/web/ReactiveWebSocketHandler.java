@@ -12,7 +12,6 @@ import uk.dioxic.mongotakeaway.ChangeStreamService;
 import uk.dioxic.mongotakeaway.config.GeneratorProperties;
 import uk.dioxic.mongotakeaway.util.DocumentUtil;
 
-import java.util.Objects;
 import java.util.Random;
 
 @Slf4j
@@ -36,7 +35,6 @@ public class ReactiveWebSocketHandler implements WebSocketHandler {
         log.info("handling customer {}", customer);
 
         return webSocketSession.send(changeStreamService.subscribe(customer)
-                .filter(cse -> customer.equals(Objects.requireNonNull(cse.getBody()).getCustomerId()))
                 .map(ChangeStreamEvent::getRaw)
                 .map(ChangeStreamDocument::getFullDocument)
                 .map(DocumentUtil::toJson)

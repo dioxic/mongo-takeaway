@@ -61,7 +61,8 @@ public class ChangeStreamService {
                                 where("operationType").in("insert", "update")
                                         .and("ns.coll").is("order")
                                         .and("fullDocument._id").exists(true)
-                                        .and("fullDocument.customerId").in(subs)))).fullDocumentLookup(FullDocument.UPDATE_LOOKUP);
+                                        .and("fullDocument.customerId").in(subs))))
+                        .fullDocumentLookup(FullDocument.UPDATE_LOOKUP);
 
                 if (csSubscriber != null) {
                     csSubscriber.cancel();
@@ -106,7 +107,8 @@ public class ChangeStreamService {
             return new AtomicInteger(0);
         }).incrementAndGet();
 
-        return processor;
+        return processor
+            .filter(cse -> customer.equals(Objects.requireNonNull(cse.getBody()).getCustomerId()));
     }
 
     public void unsubscribe(Integer customer) {
