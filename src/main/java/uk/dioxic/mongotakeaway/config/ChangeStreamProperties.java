@@ -11,7 +11,7 @@ import org.springframework.context.annotation.PropertySource;
 @ConfigurationProperties(prefix = "changestream")
 public class ChangeStreamProperties {
 
-    private int subscriptionPause = 3;
-    private int resubscriptionInterval = 1;
+    private int subscriptionPause = 0;
+    private int resubscriptionInterval = 3;
 
 }

@@ -28,11 +28,11 @@ Configuration:
         - ref: File
     Logger:
       - name: uk.dioxic.mongotakeaway
-        additivity: true
-        level: debug
+        additivity: false
+        level: info
         AppenderRef:
+          - ref: File
           - ref: STDOUT
-            level: info
       - name: org.mongodb
         additivity: true
         level: info
@@ -48,3 +48,8 @@ Configuration:
         level: debug
         AppenderRef:
           - ref: File
+      - name: org.springframework.web.server.adapter.HttpWebHandlerAdapter
+        additivity: true
+        level: debug
+        AppenderRef:
+          - ref: STDOUT

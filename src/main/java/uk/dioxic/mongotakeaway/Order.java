@@ -1,7 +1,6 @@
 package uk.dioxic.mongotakeaway;
 
 import lombok.Data;
-import lombok.Getter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -13,33 +12,30 @@ import static java.time.LocalDateTime.now;
 @Document
 public class Order {
     @Id
-    private Long id;
+    private String id;
+    private Long threadId;
     private Integer customerId;
-    private State state;
-    private LocalDateTime created;
-    private LocalDateTime modified;
+    private State state = State.PENDING;
+    private LocalDateTime created = now();
+    private LocalDateTime modified = now();
 
     public Order() {
-
     }
 
     public Order(Order order) {
-        this.id = order.id;
+        this.threadId = order.threadId;
         this.customerId = order.customerId;
         this.state = order.state;
         this.created = order.created;
         this.modified = order.modified;
     }
 
-    public Order(Long id, Integer customerId) {
-        this.id = id;
+    public Order(Integer customerId, Long threadId) {
         this.customerId = customerId;
-        this.state = State.PENDING;
-        this.created = now();
-        this.modified = now();
+        this.threadId = threadId;
     }
 
-    enum State {
+    public enum State {
         PENDING, ONROUTE, DELIVERED
     }
 

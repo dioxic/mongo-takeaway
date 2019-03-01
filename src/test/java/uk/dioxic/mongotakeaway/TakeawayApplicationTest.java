@@ -1,21 +1,25 @@
 package uk.dioxic.mongotakeaway;
 
+import com.mongodb.client.result.DeleteResult;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.bson.types.ObjectId;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import uk.dioxic.mongotakeaway.config.RouteConfig;
+import uk.dioxic.mongotakeaway.repository.OrderRepository;
+import uk.dioxic.mongotakeaway.web.OrderHandler;
+
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @Slf4j
 @ExtendWith(SpringExtension.class)
@@ -23,11 +27,15 @@ import reactor.core.publisher.Mono;
 @WebFluxTest
 public class TakeawayApplicationTest {
 
-	@Autowired
+//	@Autowired
 	private WebTestClient webTestClient;
 
-	@Autowired
-	private ApplicationContext context;
+//	@Autowired
+//	private ApplicationContext context;
+//
+//	@Autowired
+//	@Qualifier("orderRoute")
+//	private RouterFunction<ServerResponse> orderRoute;
 
 	@MockBean
 	private OrderRepository repository;
@@ -35,10 +43,11 @@ public class TakeawayApplicationTest {
 	@BeforeEach
 	public void setUp() {
 		//    supposed to bind the router functions but didn't work
-		//		webTestClient = WebTestClient.bindToApplicationContext(context).build();
+		webTestClient = WebTestClient.bindToRouterFunction(new RouteConfig(new OrderHandler(repository)).orderRoute()).build();
 	}
 
 	@Test
+	@Disabled
 	public void hello() {
 		webTestClient.get().uri("/hello")
 //				.accept(MediaType.APPLICATION_JSON_UTF8)
@@ -50,47 +59,64 @@ public class TakeawayApplicationTest {
 
 	@Test
 	public void findAll() {
-		Mockito.when(repository.findAll()).thenReturn(Flux.just(
-				new Order(1L, 0),
-				new Order(2L, 0),
-				new Order(3L, 0)));
+		when(repository.findAll())
+				.thenReturn(Flux.range(0, 5)
+					.map(i -> new Order())
+					.doOnNext(order -> order.setId(ObjectId.get().toHexString())
+				));
 
 		webTestClient.get().uri("/order")
 //				.accept(MediaType.APPLICATION_JSON_UTF8)
 				.exchange()
 				.expectStatus().isOk()
 				.expectBodyList(Order.class)
-					.hasSize(3)
+					.hasSize(5)
 					.value(orders -> orders.forEach(order -> log.info(order.toString())));
 
-		Mockito.verify(repository).findAll();
+		verify(repository).findAll();
 	}
 
 	@Test
-	public void findById() {
-		Order order = new Order(1L, 0);
+	public void findById_ok() {
+		Order order = new Order();
+		order.setId("5c77274bf9200106683b5d82");
 
-		Mockito.when(repository.findById(order.getId()))
+		when(repository.findById(Mockito.<String>any()))
 				.thenReturn(Mono.just(order));
 
 		webTestClient.get().uri("/order/"+ order.getId())
-				.accept(MediaType.APPLICATION_JSON_UTF8)
+				.accept(MediaType.APPLICATION_JSON)
 				.exchange()
 				.expectStatus().isOk()
 				.expectBody(Order.class)
 				.isEqualTo(order);
 
-		Mockito.verify(repository).findById(order.getId());
+		verify(repository).findById(order.getId());
+	}
+
+	@Test
+	public void findById_notFound() {
+		Order order = new Order();
+		order.setId("5c77274bf9200106683b5d82");
+
+		when(repository.findById(Mockito.<String>any()))
+				.thenReturn(Mono.empty());
+
+		webTestClient.get().uri("/order/"+ order.getId())
+				.accept(MediaType.APPLICATION_JSON)
+				.exchange()
+				.expectStatus().isNotFound();
+
+		verify(repository).findById(order.getId());
 	}
 
 	@Test
 	public void save() {
-
-		Order order = new Order(null, 99);
+		Order order = new Order();
 		Order orderWithId = new Order(order);
-		orderWithId.setId(1L);
+		orderWithId.setId("5c77274bf9200106683b5d82");
 
-		Mockito.when(repository.save(order))
+		when(repository.save(order))
 				.thenReturn(Mono.just(orderWithId));
 
 		webTestClient.post().uri("/order")
@@ -102,19 +128,35 @@ public class TakeawayApplicationTest {
 				.expectBody(Order.class)
 				.isEqualTo(orderWithId);
 
+		verify(repository).save(order);
 	}
 
 	@Test
-	public void delete() {
+	public void delete_exists() {
+		String oid = ObjectId.get().toHexString();
+		when(repository.deleteByIdWithResults(eq(oid)))
+				.thenReturn(Mono.just(DeleteResult.acknowledged(1)));
 
-		Mockito.when(repository.deleteById(1L))
-				.thenReturn(Mono.empty());
-
-		webTestClient.delete().uri("/order/1")
-				.accept(MediaType.APPLICATION_JSON_UTF8)
+		webTestClient.delete().uri("/order/" + oid)
+				.accept(MediaType.APPLICATION_JSON)
 				.exchange()
 				.expectStatus().isAccepted();
 
+		verify(repository).deleteByIdWithResults(eq(oid));
+	}
+
+	@Test
+	public void delete_notfound() {
+		String oid = ObjectId.get().toHexString();
+		when(repository.deleteByIdWithResults(eq(oid)))
+				.thenReturn(Mono.just(DeleteResult.acknowledged(0)));
+
+		webTestClient.delete().uri("/order/" + oid)
+				.accept(MediaType.APPLICATION_JSON)
+				.exchange()
+				.expectStatus().isNotFound();
+
+		verify(repository).deleteByIdWithResults(eq(oid));
 	}
 
 }

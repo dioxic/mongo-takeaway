@@ -13,11 +13,19 @@ Configuration:
       level: info
       AppenderRef:
         - ref: STDOUT
-          level: debug
     Logger:
       - name: uk.dioxic.mongotakeaway
         additivity: false
         level: debug
         AppenderRef:
           - ref: STDOUT
-            level: info
+      - name: org.springframework.beans.factory.support
+        additivity: false
+        level: info
+        AppenderRef:
+          - ref: STDOUT
+      - name: org.springframework.web
+        additivity: false
+        level: debug
+        AppenderRef:
+          - ref: STDOUT
