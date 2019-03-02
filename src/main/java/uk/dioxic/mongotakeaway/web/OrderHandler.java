@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
-import uk.dioxic.mongotakeaway.Order;
+import uk.dioxic.mongotakeaway.domain.Order;
 import uk.dioxic.mongotakeaway.repository.OrderRepository;
 
 import java.net.URI;
@@ -18,7 +18,6 @@ import static org.springframework.web.reactive.function.server.ServerResponse.*;
 
 @SuppressWarnings("ALL")
 @Slf4j
-//@Deprecated
 @Component
 public class OrderHandler {
 
@@ -37,8 +36,7 @@ public class OrderHandler {
                 .map(repository::findByCustomerId)
                 .orElseGet(repository::findAll), Order.class)
             .doOnError(e -> log.error(e.getMessage(), e))
-            .onErrorReturn(status(INTERNAL_SERVER_ERROR).build().block())
-            .switchIfEmpty(notFound().build());
+            .onErrorReturn(status(INTERNAL_SERVER_ERROR).build().block());
     }
 
     public Mono<ServerResponse> createOrder(ServerRequest request) {

@@ -8,40 +8,38 @@ import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import reactor.core.publisher.Mono;
-import uk.dioxic.mongotakeaway.ChangeStreamService;
-import uk.dioxic.mongotakeaway.config.GeneratorProperties;
+import uk.dioxic.mongotakeaway.service.OrderService;
+import uk.dioxic.mongotakeaway.domain.Customer;
+import uk.dioxic.mongotakeaway.generator.CustomerGenerator;
 import uk.dioxic.mongotakeaway.util.DocumentUtil;
-
-import java.util.Random;
 
 @Slf4j
 @Component
 public class ReactiveWebSocketHandler implements WebSocketHandler {
 
-    private ChangeStreamService changeStreamService;
-    private GeneratorProperties properties;
+    private OrderService orderService;
+    private CustomerGenerator customerGenerator;
 
-    public ReactiveWebSocketHandler(ChangeStreamService changeStreamService, GeneratorProperties properties) {
-        this.changeStreamService = changeStreamService;
-        this.properties = properties;
+    public ReactiveWebSocketHandler(OrderService orderService, CustomerGenerator customerGenerator) {
+        this.orderService = orderService;
+        this.customerGenerator = customerGenerator;
     }
 
     @Override
     public Mono<Void> handle(WebSocketSession webSocketSession) {
         webSocketSession.getAttributes().forEach((k, v) -> log.info("k: {}, v: {}", k, v));
 
-        Random random = new Random();
-        Integer customer = random.nextInt(properties.getCustomers());
+        Customer customer = customerGenerator.getRandomGeneratedCustomer();
         log.info("handling customer {}", customer);
 
-        return webSocketSession.send(changeStreamService.subscribe(customer)
+        return webSocketSession.send(orderService.subscribe(customer)
                 .map(ChangeStreamEvent::getRaw)
                 .map(ChangeStreamDocument::getFullDocument)
                 .map(DocumentUtil::toJson)
                 .map(webSocketSession::textMessage))
                 .and(webSocketSession.receive()
                         .map(WebSocketMessage::getPayloadAsText)
-                        .doOnComplete(() -> changeStreamService.unsubscribe(customer))
+                        .doOnComplete(() -> orderService.unsubscribe(customer))
                 );
     }
 }

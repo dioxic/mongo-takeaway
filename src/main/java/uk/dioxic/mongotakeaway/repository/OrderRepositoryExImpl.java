@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Update;
 import reactor.core.publisher.Mono;
-import uk.dioxic.mongotakeaway.Order;
+import uk.dioxic.mongotakeaway.domain.Order;
 
 import java.util.Map;
 

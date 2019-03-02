@@ -70,6 +70,11 @@
 			<version>1.18.6</version>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>uk.dioxic.faker4j</groupId>
+			<artifactId>faker4j</artifactId>
+			<version>0.0.4</version>
+		</dependency>
 		<!-- logging -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>

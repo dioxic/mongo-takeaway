@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import uk.dioxic.mongotakeaway.Order;
+import uk.dioxic.mongotakeaway.domain.Order;
 import uk.dioxic.mongotakeaway.repository.OrderRepository;
 
 import java.util.Map;

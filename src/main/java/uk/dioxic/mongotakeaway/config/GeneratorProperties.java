@@ -15,6 +15,7 @@ public class GeneratorProperties {
     private int concurrency = 1;
     private boolean randomise = true;
     private int customers = 1;
+    private int menuItems = 100;
     private int jobInterval = 10;
     private int pendingTime = 10;
     private int onrouteTime = 30;
