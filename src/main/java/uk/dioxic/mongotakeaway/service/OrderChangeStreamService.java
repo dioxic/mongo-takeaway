@@ -12,6 +12,7 @@ import uk.dioxic.mongotakeaway.domain.Order;
 
 @Slf4j
 @Service
+@Deprecated
 public class OrderChangeStreamService extends AbstractChangeStreamService<Order, ObjectId> {
 
     public OrderChangeStreamService(ReactiveMongoTemplate reactiveTemplate, ChangeStreamProperties properties) {

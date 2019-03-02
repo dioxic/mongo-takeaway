@@ -1,6 +1,6 @@
 package uk.dioxic.mongotakeaway.service;
 
-import com.mongodb.client.model.changestream.FullDocument;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.BsonString;
 import org.bson.BsonValue;
@@ -12,16 +12,15 @@ import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import uk.dioxic.mongotakeaway.config.ChangeStreamProperties;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
@@ -29,20 +28,52 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.newA
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 @Slf4j
-@Deprecated
-public abstract class AbstractChangeStreamService<T, ID> {
+public class ChangeStreamSubscriber<T, ID> {
 
     private DirectProcessor<ChangeStreamEvent<T>> processor;
     private ReactiveMongoTemplate reactiveTemplate;
     private ConcurrentHashMap<ID, AtomicInteger> externalSubscriptions = new ConcurrentHashMap<>();
-    private ChangeStreamSubscriber csSubscriber;
+    private InternalSubscriber csSubscriber;
     private ChangeStreamProperties properties;
     private volatile boolean resubscriptionScheduled = false;
     private Lock resubscriptionLock = new ReentrantLock();
 
-    public AbstractChangeStreamService(ReactiveMongoTemplate reactiveTemplate, ChangeStreamProperties properties) {
+    // config properties
+    private Class<T> targetType;
+    private List<String> operationTypes;
+    private Function<ChangeStreamEvent<T>, ID> extractKeyField;
+    private Function<ID, Predicate<ChangeStreamEvent<T>>> postFilter;
+    private BiFunction<Set<ID>,
+            ChangeStreamOptions.ChangeStreamOptionsBuilder,
+            ChangeStreamOptions.ChangeStreamOptionsBuilder> changeStreamOptions;
+
+    @Builder
+    ChangeStreamSubscriber(ReactiveMongoTemplate reactiveTemplate,
+                           ChangeStreamProperties properties,
+                           Class<T> targetType,
+                           BiFunction<Set<ID>, ChangeStreamOptions.ChangeStreamOptionsBuilder, ChangeStreamOptions.ChangeStreamOptionsBuilder> changeStreamOptions,
+                           List<String> operationTypes,
+                           String keyField,
+                           Function<ChangeStreamEvent<T>, ID> extractKeyField,
+                           Function<ID, Predicate<ChangeStreamEvent<T>>> postFilter) {
+        Objects.requireNonNull(reactiveTemplate, "reactiveTemplate");
+        Objects.requireNonNull(properties, "properties");
+        Objects.requireNonNull(targetType, "targetType");
+
         this.reactiveTemplate = reactiveTemplate;
         this.properties = properties;
+        this.targetType = targetType;
+        this.postFilter = postFilter;
+        this.operationTypes = Optional.ofNullable(operationTypes).orElse(List.of("insert", "update"));
+        this.changeStreamOptions = Optional.ofNullable(changeStreamOptions).orElse(defaultChangeStreamOptions);
+
+        if (postFilter == null) {
+            if (extractKeyField != null)
+                this.postFilter = id -> (cse -> id.equals(extractKeyField.apply(cse)));
+            else
+                this.postFilter = id -> (cse -> true);
+        }
+
         processor = DirectProcessor.create();
         Executors.newSingleThreadScheduledExecutor()
                 .scheduleAtFixedRate(this::resubscribe,
@@ -51,31 +82,15 @@ public abstract class AbstractChangeStreamService<T, ID> {
                         TimeUnit.SECONDS);
     }
 
-    abstract Class<T> getTargetType();
-
-    abstract String getKeyField();
-
-    abstract ID resolveFilterValue(T document);
-
-    final HashSet<ID> getSubscriptionKeySet() {
+    private HashSet<ID> getSubscriptionKeySet() {
         return new HashSet<>(externalSubscriptions.keySet());
     }
 
-    List<String> getOperationTypes() {
-        return List.of("insert", "update");
-    }
-
-    Predicate<ChangeStreamEvent<T>> postFilter(ID id) {
-        return cse -> id.equals(resolveFilterValue(cse.getBody()));
-    }
-
-    void initialiseBuilder(ChangeStreamOptions.ChangeStreamOptionsBuilder builder, Set<ID> subs) {
-        builder.filter(newAggregation(match(
-                where("operationType").in(getOperationTypes())
-                .and("fullDocument." + getKeyField()).in(subs)))
-        )
-        .fullDocumentLookup(FullDocument.UPDATE_LOOKUP);
-    }
+    private BiFunction<Set<ID>, ChangeStreamOptions.ChangeStreamOptionsBuilder, ChangeStreamOptions.ChangeStreamOptionsBuilder> defaultChangeStreamOptions =
+            (subs, builder) -> builder.filter(newAggregation(match(
+                    where("documentKey._id").in(subs)
+                    .and("operationType").in(operationTypes)
+            )));
 
     private void resubscribe() {
         if (resubscriptionScheduled && resubscriptionLock.tryLock()) {
@@ -84,7 +99,6 @@ public abstract class AbstractChangeStreamService<T, ID> {
             try {
                 ChangeStreamOptions.ChangeStreamOptionsBuilder builder = ChangeStreamOptions.builder();
                 Set<ID> subs = new HashSet<>(externalSubscriptions.keySet());
-                initialiseBuilder(builder, subs);
 
                 if (csSubscriber != null) {
                     csSubscriber.cancel();
@@ -98,14 +112,13 @@ public abstract class AbstractChangeStreamService<T, ID> {
                     // deferred subscribe
                     log.info("pausing {} sec before changestream creation", properties.getSubscriptionPause());
                     Thread.sleep(properties.getSubscriptionPause() * 1000);
-                    ChangeStreamOptions options = builder.build();
 
-                    csSubscriber = new ChangeStreamSubscriber(processor, csSubscriber);
+                    ChangeStreamOptions options = changeStreamOptions.apply(subs, builder).build();
 
                     reactiveTemplate
-                            .changeStream(options, getTargetType())
-                            .doOnNext(o -> log.trace("receiving {} notification for order={}", Objects.requireNonNull(o.getOperationType()).getValue(), Objects.requireNonNull(o.getBody())))
-                            .doOnSubscribe(x -> log.info("changestream created for customers {} with token={}", subs, options.getResumeToken()
+                            .changeStream(options, targetType)
+                            .doOnNext(o -> log.trace("receiving {} notification for {}", Objects.requireNonNull(o.getOperationType()).getValue(), Objects.requireNonNull(o.getBody())))
+                            .doOnSubscribe(x -> log.info("changestream created for subscriptions {} with token={}", subs, options.getResumeToken()
                                     .filter(BsonValue::isDocument)
                                     .map(BsonValue::asDocument)
                                     .map(doc -> doc.get("_data"))
@@ -116,7 +129,7 @@ public abstract class AbstractChangeStreamService<T, ID> {
                             .doOnComplete(() -> log.info("changestream complete"))
                             .doOnCancel(() -> log.info("changestream cancelled"))
                             .doOnError(e -> log.error(e.getMessage()))
-                            .subscribe(csSubscriber = new ChangeStreamSubscriber(processor, csSubscriber));
+                            .subscribe(csSubscriber = new InternalSubscriber(processor, csSubscriber));
                 }
             } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
@@ -134,7 +147,7 @@ public abstract class AbstractChangeStreamService<T, ID> {
         }).incrementAndGet();
 
         return processor
-                .filter(postFilter(id));
+                .filter(postFilter.apply(id));
     }
 
     public void unsubscribe(ID id) {
@@ -148,17 +161,17 @@ public abstract class AbstractChangeStreamService<T, ID> {
         });
     }
 
-    private class ChangeStreamSubscriber extends BaseSubscriber<ChangeStreamEvent<T>> {
+    private class InternalSubscriber extends BaseSubscriber<ChangeStreamEvent<T>> {
         private DirectProcessor<ChangeStreamEvent<T>> processor;
         private BsonValue resumeToken;
 
-        ChangeStreamSubscriber(DirectProcessor<ChangeStreamEvent<T>> processor, ChangeStreamSubscriber previous) {
+        InternalSubscriber(DirectProcessor<ChangeStreamEvent<T>> processor, InternalSubscriber previous) {
             this(processor);
             if (previous != null && previous.getResumeToken() != null)
                 this.resumeToken = previous.getResumeToken();
         }
 
-        ChangeStreamSubscriber(DirectProcessor<ChangeStreamEvent<T>> processor) {
+        InternalSubscriber(DirectProcessor<ChangeStreamEvent<T>> processor) {
             Objects.requireNonNull(processor, "processor cannot be null");
             this.processor = processor;
         }

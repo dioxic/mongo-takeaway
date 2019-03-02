@@ -29,7 +29,7 @@ Configuration:
     Logger:
       - name: uk.dioxic.mongotakeaway
         additivity: false
-        level: info
+        level: debug
         AppenderRef:
           - ref: File
           - ref: STDOUT
