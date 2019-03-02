@@ -7,14 +7,12 @@ import reactor.core.publisher.Flux;
 import uk.dioxic.faker.Faker;
 import uk.dioxic.mongotakeaway.config.GeneratorProperties;
 import uk.dioxic.mongotakeaway.domain.Customer;
-import uk.dioxic.mongotakeaway.domain.MenuItem;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 

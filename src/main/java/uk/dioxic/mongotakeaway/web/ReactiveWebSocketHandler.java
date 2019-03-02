@@ -8,19 +8,19 @@ import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import reactor.core.publisher.Mono;
-import uk.dioxic.mongotakeaway.service.OrderService;
 import uk.dioxic.mongotakeaway.domain.Customer;
 import uk.dioxic.mongotakeaway.generator.CustomerGenerator;
+import uk.dioxic.mongotakeaway.service.OrderChangeStreamService;
 import uk.dioxic.mongotakeaway.util.DocumentUtil;
 
 @Slf4j
 @Component
 public class ReactiveWebSocketHandler implements WebSocketHandler {
 
-    private OrderService orderService;
+    private OrderChangeStreamService orderService;
     private CustomerGenerator customerGenerator;
 
-    public ReactiveWebSocketHandler(OrderService orderService, CustomerGenerator customerGenerator) {
+    public ReactiveWebSocketHandler(OrderChangeStreamService orderService, CustomerGenerator customerGenerator) {
         this.orderService = orderService;
         this.customerGenerator = customerGenerator;
     }

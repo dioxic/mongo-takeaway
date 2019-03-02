@@ -12,9 +12,9 @@ import uk.dioxic.mongotakeaway.domain.Order;
 
 @Slf4j
 @Service
-public class OrderService extends AbstractChangeStreamService<Order, ObjectId> {
+public class OrderChangeStreamService extends AbstractChangeStreamService<Order, ObjectId> {
 
-    public OrderService(ReactiveMongoTemplate reactiveTemplate, ChangeStreamProperties properties) {
+    public OrderChangeStreamService(ReactiveMongoTemplate reactiveTemplate, ChangeStreamProperties properties) {
         super(reactiveTemplate, properties);
     }
 

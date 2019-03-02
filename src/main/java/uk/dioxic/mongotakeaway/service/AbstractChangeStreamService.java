@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Predicate;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
@@ -61,6 +62,10 @@ public abstract class AbstractChangeStreamService<T, ID> {
 
     List<String> getOperationTypes() {
         return List.of("insert", "update");
+    }
+
+    Predicate<ChangeStreamEvent<T>> postFilter(ID id) {
+        return cse -> id.equals(resolveFilterValue(cse.getBody()));
     }
 
     void initialiseBuilder(ChangeStreamOptions.ChangeStreamOptionsBuilder builder, Set<ID> subs) {
@@ -128,7 +133,7 @@ public abstract class AbstractChangeStreamService<T, ID> {
         }).incrementAndGet();
 
         return processor
-                .filter(cse -> id.equals(resolveFilterValue(cse.getBody())));
+                .filter(postFilter(id));
     }
 
     public void unsubscribe(ID id) {
