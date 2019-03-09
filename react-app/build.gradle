@@ -1,5 +1,6 @@
 
 plugins {
+    id 'idea'
     id "com.moowork.node" version "1.2.0"
 }
 
@@ -32,8 +33,13 @@ npm_run_build {
     outputs.dir 'build'
 }
 
+idea.module {
+    excludeDirs += file('package')
+    excludeDirs += file('node_modules')
+}
+
 // pack output of the build into JAR file
-task packageNpmApp(type: Zip) {
+task packageApp(type: Zip) {
     dependsOn npm_run_build
     baseName 'react-app'
     extension 'jar'
@@ -53,14 +59,14 @@ configurations.default.extendsFrom(configurations.npmResources)
 
 // expose the artifact created by the packaging task
 artifacts {
-    npmResources(packageNpmApp.archivePath) {
-        builtBy packageNpmApp
+    npmResources(packageApp.archivePath) {
+        builtBy packageApp
         type 'jar'
     }
 }
 
-assemble.dependsOn packageNpmApp
+assemble.dependsOn packageApp
 
 clean {
-    delete packageNpmApp.archivePath
+    delete packageApp.archivePath
 }

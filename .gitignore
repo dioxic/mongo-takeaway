@@ -32,7 +32,7 @@ package/
 
 
 # project files
-/.idea
+.idea/
 *.iml
 
 # dependencies
