@@ -1,0 +1,3 @@
+rootProject.name = 'mongo-takeaway'
+include 'java-app'
+include 'react-app'
