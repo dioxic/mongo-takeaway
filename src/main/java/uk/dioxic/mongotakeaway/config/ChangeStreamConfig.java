@@ -1,10 +1,12 @@
 package uk.dioxic.mongotakeaway.config;
 
 import com.mongodb.client.model.changestream.FullDocument;
+import org.bson.BsonValue;
 import org.bson.types.ObjectId;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import uk.dioxic.mongotakeaway.domain.Customer;
 import uk.dioxic.mongotakeaway.domain.Order;
 import uk.dioxic.mongotakeaway.service.ChangeStreamSubscriber;
 
@@ -35,15 +37,24 @@ public class ChangeStreamConfig {
     }
 
     @Bean("orderByIdSubscriber")
-    @SuppressWarnings("ConstantConditions")
     public ChangeStreamSubscriber<Order, ObjectId> orderByIdSubscriber(ReactiveMongoTemplate reactiveTemplate, ChangeStreamProperties properties) {
         return ChangeStreamSubscriber.<Order, ObjectId>builder()
                 .reactiveTemplate(reactiveTemplate)
                 .properties(properties)
                 .targetType(Order.class)
                 .operationTypes(List.of("insert"))
-                .extractKeyField(cse -> Objects.requireNonNull(cse.getRaw().getDocumentKey().get("_id"))
-                        .asObjectId().getValue())
+                .documentIdCoverter(bson -> bson.asObjectId().getValue())
+                .build();
+    }
+
+    @Bean("customerByIdSubscriber")
+    public ChangeStreamSubscriber<Customer, ObjectId> customerByIdSubscriber(ReactiveMongoTemplate reactiveTemplate, ChangeStreamProperties properties) {
+        return ChangeStreamSubscriber.<Customer, ObjectId>builder()
+                .reactiveTemplate(reactiveTemplate)
+                .properties(properties)
+                .targetType(Customer.class)
+                .operationTypes(List.of("insert", "update", "delete"))
+                .documentIdCoverter(bson -> bson.asObjectId().getValue())
                 .build();
     }
 }

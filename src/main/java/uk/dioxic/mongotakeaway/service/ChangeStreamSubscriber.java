@@ -1,5 +1,6 @@
 package uk.dioxic.mongotakeaway.service;
 
+import com.mongodb.annotations.ThreadSafe;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.BsonString;
@@ -28,6 +29,7 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.newA
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 @Slf4j
+@ThreadSafe
 public class ChangeStreamSubscriber<T, ID> {
 
     private DirectProcessor<ChangeStreamEvent<T>> processor;
@@ -54,6 +56,7 @@ public class ChangeStreamSubscriber<T, ID> {
                            BiFunction<Set<ID>, ChangeStreamOptions.ChangeStreamOptionsBuilder, ChangeStreamOptions.ChangeStreamOptionsBuilder> changeStreamOptions,
                            List<String> operationTypes,
                            String keyField,
+                           Function<BsonValue, ID> documentIdCoverter,
                            Function<ChangeStreamEvent<T>, ID> extractKeyField,
                            Function<ID, Predicate<ChangeStreamEvent<T>>> postFilter) {
         Objects.requireNonNull(reactiveTemplate, "reactiveTemplate");
@@ -65,11 +68,15 @@ public class ChangeStreamSubscriber<T, ID> {
         this.targetType = targetType;
         this.postFilter = postFilter;
         this.operationTypes = Optional.ofNullable(operationTypes).orElse(List.of("insert", "update"));
-        this.changeStreamOptions = Optional.ofNullable(changeStreamOptions).orElse(defaultChangeStreamOptions);
+        this.changeStreamOptions = Optional.ofNullable(changeStreamOptions).orElse(this::defaultChangeStreamOptions);
+
+        Function<ChangeStreamEvent<T>, ID> ex = extractKeyField;
 
         if (postFilter == null) {
             if (extractKeyField != null)
                 this.postFilter = id -> (cse -> id.equals(extractKeyField.apply(cse)));
+            else if (documentIdCoverter != null)
+                this.postFilter = id -> (cse -> id.equals(documentIdCoverter.apply(Objects.requireNonNull(cse.getRaw().getDocumentKey().get("_id"))))) ;
             else
                 this.postFilter = id -> (cse -> true);
         }
@@ -86,11 +93,13 @@ public class ChangeStreamSubscriber<T, ID> {
         return new HashSet<>(externalSubscriptions.keySet());
     }
 
-    private BiFunction<Set<ID>, ChangeStreamOptions.ChangeStreamOptionsBuilder, ChangeStreamOptions.ChangeStreamOptionsBuilder> defaultChangeStreamOptions =
-            (subs, builder) -> builder.filter(newAggregation(match(
-                    where("documentKey._id").in(subs)
-                    .and("operationType").in(operationTypes)
-            )));
+    private ChangeStreamOptions.ChangeStreamOptionsBuilder defaultChangeStreamOptions(Set<ID> subs, ChangeStreamOptions.ChangeStreamOptionsBuilder builder) {
+        return builder.filter(newAggregation(match(
+                where("documentKey._id").in(subs)
+                        .and("operationType").in(operationTypes)
+
+        )));
+    }
 
     private void resubscribe() {
         if (resubscriptionScheduled && resubscriptionLock.tryLock()) {
