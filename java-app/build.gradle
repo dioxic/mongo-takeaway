@@ -44,7 +44,7 @@ dependencies {
 group = 'uk.dioxic'
 version = '0.0.1-SNAPSHOT'
 description = 'mongo-takeaway'
-sourceCompatibility = '1.8'
+sourceCompatibility = '11.0'
 
 configurations.all {
     exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
