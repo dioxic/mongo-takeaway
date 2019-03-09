@@ -26,7 +26,6 @@ dependency-reduced-pom.xml
 hs_err_pid*
 
 # build files
-/gradle
 .gradle/
 build/
 node_modules/
