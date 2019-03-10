@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(SpringExtension.class)
 @DisplayName("web endpoint tests")
 @WebFluxTest
-public class TakeawayApplicationTest {
+class TakeawayApplicationTest {
 
 //	@Autowired
 	private WebTestClient webTestClient;
@@ -42,14 +42,14 @@ public class TakeawayApplicationTest {
 	private OrderRepository repository;
 
 	@BeforeEach
-	public void setUp() {
+	void setUp() {
 		//    supposed to bind the router functions but didn't work
 		webTestClient = WebTestClient.bindToRouterFunction(new RouteConfig(new OrderHandler(repository)).orderRoute()).build();
 	}
 
 	@Test
 	@Disabled
-	public void hello() {
+	void hello() {
 		webTestClient.get().uri("/hello")
 //				.accept(MediaType.APPLICATION_JSON_UTF8)
 				.exchange()
