@@ -1,1 +1,19 @@
 defaultTasks 'build'
+
+allprojects {
+    apply plugin: 'idea'
+    idea {
+        module {
+            inheritOutputDirs = false
+            outputDir = file('build/classes/java/main')
+            testOutputDir = file('build/classes/java/test')
+            downloadJavadoc = true
+            downloadSources = true
+        }
+    }
+}
+
+idea.project {
+    jdkName = '11'
+    languageLevel = '11'
+}
