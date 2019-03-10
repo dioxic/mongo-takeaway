@@ -10,7 +10,7 @@ import {
 const orders = (state = {
     isFetching: false,
     didInvalidate: false,
-    orders: []
+    items: []
   }, action) => {
 	switch (action.type) {
 		case INVALIDATE_ORDER:
@@ -18,10 +18,10 @@ const orders = (state = {
 				didInvalidate: true
 			})
 		case SAVE_ORDER:
-			return [
-				...state,
-				{id: action.id, customerId: 0, status: "PENDING"}
-			]
+			return Object.assign({}, state, {
+				isFetching: false,
+				didInvalidate: false
+			})
 		case UPDATE_ORDER:
 			return state.map(order =>
 				(order === action.id)
@@ -31,7 +31,7 @@ const orders = (state = {
 			return Object.assign({}, state, {
 				isFetching: false,
 				didInvalidate: false,
-				orders: action.orders,
+				items: action.orders,
 				lastUpdated: action.receivedAt
 			})
 		case DELIVER_ORDER:

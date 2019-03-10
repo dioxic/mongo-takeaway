@@ -3,21 +3,21 @@ import { deliverOrder } from '../actions'
 import OrderList from '../components/OrderList'
 import { VisibilityFilters } from '../actions'
 
-const getVisibleOrders = (orders, filter) => {
-  switch (filter) {
+const getVisibleOrders = ({orders, visibilityFilter}) => {
+  switch (visibilityFilter.filter) {
     case VisibilityFilters.SHOW_ALL:
-      return orders
+      return orders.items;
     case VisibilityFilters.SHOW_COMPLETED:
-      return orders.filter(t => t.status === "DELIVERED")
+      return orders.items.filter(t => t.status === "DELIVERED")
     case VisibilityFilters.SHOW_ACTIVE:
-      return orders.filter(t => t.status !== "DELIVERED")
+      return orders.items.filter(t => t.status !== "DELIVERED")
     default:
-      throw new Error('Unknown filter: ' + filter)
+      throw new Error('Unknown filter: ' + visibilityFilter)
   }
 }
 
-const mapStateToProps = ({orders, visibilityFilter}) => ({
-  orders: getVisibleOrders(orders, visibilityFilter)
+const mapStateToProps = (state) => ({
+  orders: getVisibleOrders(state)
 })
 
 const mapDispatchToProps = dispatch => ({

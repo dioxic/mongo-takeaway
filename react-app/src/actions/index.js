@@ -23,7 +23,7 @@ export const VisibilityFilters = {
 }
 
 /*
- * action creators
+ * action creators   
  */
 
 export const requestOrders = customerId => ({
