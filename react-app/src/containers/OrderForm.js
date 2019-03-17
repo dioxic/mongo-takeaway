@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import Grid from '@material-ui/core/Grid';
 import { bindActionCreators } from 'redux'
 import { connect } from 'react-redux';
-import { saveOrder } from '../actions';
+import { saveOrder } from '../redux/order';
 import { Formik } from "formik";
 import * as Yup from "yup";
 import Paper from "@material-ui/core/Paper";
@@ -71,9 +71,6 @@ const orderStates = [
     label: 'Pending',
   }
 ];
-
-const mapDispatchToProps = dispatch =>
-  bindActionCreators({ saveOrder }, dispatch);
 
 class OrderForm extends Component {
   constructor(props) {
@@ -248,6 +245,9 @@ class OrderForm extends Component {
 OrderForm.propTypes = {
   classes: PropTypes.object.isRequired,
 };
+
+const mapDispatchToProps = dispatch =>
+  bindActionCreators({ saveOrder }, dispatch);
 
 export default connect(
   null,

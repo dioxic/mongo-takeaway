@@ -1,7 +1,7 @@
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
 import OrderList from '../components/OrderList'
-import { VisibilityFilters } from '../actions'
+import { VisibilityFilters } from '../redux/order'
 
 import {
   load,
