@@ -36,7 +36,7 @@ export default function reducer(state, action = {}) {
     [domain]: {
       ...state[domain],
       [storePath]: {
-        // ...state[domain][storePath],
+        ...state[domain][storePath],
         ...fetchState
       }
     }
@@ -50,15 +50,14 @@ export default function reducer(state, action = {}) {
 export function createFetch(domain, storePath, api, apiArgs) {
   // Use Thunk middleware to dispatch asynchronously
   return async (dispatch) => {
-    dispatch({ type: REQUEST, storePath });
-    console.log(apiArgs);
+    dispatch({ type: REQUEST, domain, storePath });
 
     try {
       const response = await api(apiArgs);
       if (response.ok)
         dispatch({ type: SUCCESS, domain, storePath, response });
       else {
-        console.log(response);
+        console.warn(response);
         const error = {
           httpStatus: response['status'],
           msg: response['statusText'],

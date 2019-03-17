@@ -1,9 +1,9 @@
 import { connect } from 'react-redux'
-import { filter } from '../redux/order'
+import { filter, selectFilter } from '../redux/order'
 import Link from '../components/Link'
 
 const mapStateToProps = (state, ownProps) => ({
-  active: ownProps.filter === state[ownProps.storePath].filter
+  active: ownProps.filter === selectFilter(state).filter
 })
 
 const mapDispatchToProps = (dispatch, ownProps) => ({

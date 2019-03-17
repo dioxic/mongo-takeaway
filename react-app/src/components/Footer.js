@@ -4,11 +4,11 @@ import { VisibilityFilters } from '../redux/order'
 
 const Footer = () => (
   <p>
-    Show: <FilterLink storePath="orders" filter={VisibilityFilters.SHOW_ALL}>All</FilterLink>
+    Show: <FilterLink filter={VisibilityFilters.SHOW_ALL}>All</FilterLink>
     {', '}
-    <FilterLink storePath="orders" filter={VisibilityFilters.SHOW_ACTIVE}>Active</FilterLink>
+    <FilterLink filter={VisibilityFilters.SHOW_ACTIVE}>Active</FilterLink>
     {', '}
-    <FilterLink storePath="orders" filter={VisibilityFilters.SHOW_COMPLETED}>Completed</FilterLink>
+    <FilterLink filter={VisibilityFilters.SHOW_COMPLETED}>Completed</FilterLink>
   </p>
 )
 

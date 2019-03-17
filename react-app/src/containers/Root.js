@@ -6,8 +6,19 @@ import { VisibilityFilters } from '../redux/order'
 
 const store = configureStore({
     orders: {
-        data: [],
-        filter: VisibilityFilters.SHOW_ALL
+        post: {
+            data: {},
+            fetching: false
+        },
+        many: {
+            data: [],
+            filter: VisibilityFilters.SHOW_ALL,
+            fetching: false
+        },
+        one: {
+            data: {},
+            fetching: false
+        }
     }
 })
 

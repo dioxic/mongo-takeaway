@@ -19,7 +19,7 @@ const styles = theme => ({
   },
 });
 
-const OrderList = ({ classes, orders, deliverOrder }) => (
+const OrderList = ({ classes, orders }) => (
   <Paper className={classes.root}>
     <Table className={classes.table}>
       <TableHead>

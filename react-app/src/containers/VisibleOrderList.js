@@ -11,7 +11,7 @@ import {
   selectFilter
 } from '../redux/order';
 
-const getVisibleOrders = (data, filter) => {
+const getVisibleOrders = (data, filter = VisibilityFilters.SHOW_ALL) => {
   switch (filter) {
     case VisibilityFilters.SHOW_ALL:
       return data;

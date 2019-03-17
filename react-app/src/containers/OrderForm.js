@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import Grid from '@material-ui/core/Grid';
 import { bindActionCreators } from 'redux'
 import { connect } from 'react-redux';
-import { saveOrder, selectSaveError } from '../redux/order';
+import { saveOrder, selectSaveError, selectSaving } from '../redux/order';
 import { Formik } from "formik";
 import * as Yup from "yup";
 import Paper from "@material-ui/core/Paper";
@@ -60,7 +60,7 @@ const styles = theme => ({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginTop: 7,
+    marginTop: 8,
     marginLeft: -10,
   }
 });
@@ -98,7 +98,7 @@ class OrderForm extends Component {
   }
 
   render() {
-    const { classes, saveOrder, fetchError } = this.props;
+    const { classes, saveOrder, fetchError, saving } = this.props;
     const values = {
       id: 123,
       threadId: "",
@@ -120,7 +120,7 @@ class OrderForm extends Component {
                 saveOrder(values);
                 // alert(JSON.stringify(values, null, 2));
                 setSubmitting(false);
-              }, 400);
+              }, 1500);
             }}
           >
             {({
@@ -245,9 +245,9 @@ class OrderForm extends Component {
                   <Grid container spacing={8}>
                     <Grid item xs={12} sm={6} className={classes.errorText}>
                       {fetchError && Object.entries(fetchError).length !== 0 &&
-                      <React.Fragment>
-                        <Typography variant="body2" color='error'>
-                        {fetchError.url} {fetchError.httpStatus} ({fetchError.msg})
+                        <React.Fragment>
+                          <Typography variant="body2" color='error'>
+                            {fetchError.url} {fetchError.httpStatus} ({fetchError.msg})
                         </Typography>
                         </React.Fragment>
                       }
@@ -259,11 +259,13 @@ class OrderForm extends Component {
                           color="primary"
                           type="submit"
                           className={classes.button}
-                          disabled={isSubmitting || !isValid}
+                          disabled={isSubmitting || saving || !isValid}
                         >
                           Add Order
                         </Button>
-                        {isSubmitting && <CircularProgress size={24} className={classes.buttonProgress} />}
+                        {(isSubmitting || saving) &&
+                          <CircularProgress size={24} className={classes.buttonProgress} />
+                        }
                       </div>
                     </Grid>
                   </Grid>
@@ -284,7 +286,8 @@ const mapDispatchToProps = dispatch =>
   bindActionCreators({ saveOrder }, dispatch);
 
 const mapStateToProps = state => ({
-  fetchError: selectSaveError(state)
+  fetchError: selectSaveError(state),
+  saving: selectSaving(state)
 })
 
 export default connect(

@@ -9,43 +9,50 @@ export const VisibilityFilters = {
   SHOW_ACTIVE: 'SHOW_ACTIVE'
 }
 
-// Action creators
-export function loadOrder(id) {
-  return createFetch(STORE_DOMAIN, "ONE", getOrder, id);
-}
-export function loadOrders() {
-  return createFetch(STORE_DOMAIN, "MANY", getOrder);
-}
-export function saveOrder(order) {
-  return createFetch(STORE_DOMAIN, "POST", postOrder, order);
+const Paths = {
+  ONE: 'one',
+  MANY: 'many',
+  POST: 'post'
 }
 
+// Action creators
+export function loadOrder(id) {
+  return createFetch(STORE_DOMAIN, Paths.ONE, getOrder, id);
+}
+export function loadOrders() {
+  return createFetch(STORE_DOMAIN, Paths.MANY, getOrder);
+}
+export function saveOrder(order) {
+  return createFetch(STORE_DOMAIN, Paths.POST, postOrder, order);
+}
 export const filter = filter => ({
   type: FILTER,
-  storePath: STORE_DOMAIN,
+  domain: STORE_DOMAIN,
+  storePath: Paths.MANY,
   filter
 })
 
 // Selectors
 export function selectOrders(state) {
-  return state[STORE_DOMAIN].data;
+  return safeSelect(state, Paths.MANY).data;
 }
 export function selectFetching(state) {
-  return state[STORE_DOMAIN].fetching;
+  return safeSelect(state, Paths.MANY).fetching;
+}
+export function selectSaving(state) {
+  return safeSelect(state, Paths.POST).fetching;
 }
 export function selectSaveError(state) {
-  return safeSelect(state, "POST").error;
-  // return state[STORE_DOMAIN]["POST"].error;
+  return safeSelect(state, Paths.POST).error;
 }
 export function selectLoadError(state) {
-  return safeSelect(state, "MANY").error;
-  // return state[STORE_DOMAIN + ".MANY"].error;
+  return safeSelect(state, Paths.MANY).error;
 }
 export function selectFilter(state) {
-  return state[STORE_DOMAIN].filter;
+  return safeSelect(state, Paths.MANY).filter;
 }
 
 // Helpers
 function safeSelect(state, path) {
-  return ((state[STORE_DOMAIN] || {})[path] || {});
+  return (((state || {})[STORE_DOMAIN] || {})[path] || {});
 }

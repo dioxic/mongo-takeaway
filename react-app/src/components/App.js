@@ -38,7 +38,7 @@ class App extends React.Component {
               <img src={logo} className="App-logo" alt="logo" />
             </header>
           </Grid>
-          <Grid container item xs={5} justify="center">
+          <Grid container item xs={8} justify="center">
             <OrderForm/>
           </Grid>
           {/* <Grid container item xs={5} justify="center">
