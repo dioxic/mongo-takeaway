@@ -6,12 +6,8 @@ export const FILTER = 'redux/fetch/FILTER';
 
 // Reducer
 export default function reducer(state, action = {}) {
-  const { storePath, data, filter } = action;
-  const fetchState = Object.assign({},{
-    fetching: false,
-    saving: false,
-    error: false,
-  }, state[storePath]);
+  const { domain, storePath, data, error, filter } = action;
+  const fetchState = {};
 
   switch (action.type) {
     case REQUEST:
@@ -25,7 +21,7 @@ export default function reducer(state, action = {}) {
       break;
     case ERROR:
       fetchState.fetching = false;
-      fetchState.error = true;
+      fetchState.error = error;
       break;
     case FILTER:
       fetchState.filter = filter;
@@ -37,9 +33,12 @@ export default function reducer(state, action = {}) {
   // computed `fetchState`.
   return {
     ...state,
-    [storePath]: {
-      ...state[storePath],
-      ...fetchState,
+    [domain]: {
+      ...state[domain],
+      [storePath]: {
+        // ...state[domain][storePath],
+        ...fetchState
+      }
     }
   };
 }
@@ -48,16 +47,31 @@ export default function reducer(state, action = {}) {
 // * storePath: JSON key for location in the store, e.g. 'user'.
 // * api: function that makes a REST call, return a promise
 // * apiArgs: list of args to send to `api`
-export function createFetch(storePath, api, apiArgs) {
+export function createFetch(domain, storePath, api, apiArgs) {
   // Use Thunk middleware to dispatch asynchronously
   return async (dispatch) => {
     dispatch({ type: REQUEST, storePath });
+    console.log(apiArgs);
 
     try {
-      const data = await api(...apiArgs);
-      dispatch({ type: SUCCESS, storePath, data });
+      const response = await api(apiArgs);
+      if (response.ok)
+        dispatch({ type: SUCCESS, domain, storePath, response });
+      else {
+        console.log(response);
+        const error = {
+          httpStatus: response['status'],
+          msg: response['statusText'],
+          url: response['url'],
+        }
+        dispatch({ type: ERROR, domain, storePath, error })
+      }
     } catch (e) {
-      dispatch({ type: ERROR, storePath });
+      // console.error(e);
+      const error = {
+        msg: e.message || {}
+      }
+      dispatch({ type: ERROR, domain, storePath, error });
     }
   };
 }

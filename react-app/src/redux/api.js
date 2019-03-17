@@ -7,7 +7,7 @@ export function getOrder(id) {
 // 	return fetch(`/api/posts?owner=${userId}`);
 // }
 
-export function postOrder(order = {}) {
+export function postOrder(order) {
 	return fetch(`/api/order`, {
 		method: 'POST',
 		headers: {
@@ -16,5 +16,4 @@ export function postOrder(order = {}) {
 		},
 		body: JSON.stringify(order)
 	});
-	//.then(response => response.json())
 }

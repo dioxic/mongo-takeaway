@@ -3,11 +3,13 @@ import PropTypes from 'prop-types';
 import Grid from '@material-ui/core/Grid';
 import { bindActionCreators } from 'redux'
 import { connect } from 'react-redux';
-import { saveOrder } from '../redux/order';
+import { saveOrder, selectSaveError } from '../redux/order';
 import { Formik } from "formik";
 import * as Yup from "yup";
 import Paper from "@material-ui/core/Paper";
 import { withStyles } from '@material-ui/core/styles';
+import green from '@material-ui/core/colors/green';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -36,14 +38,31 @@ const styles = theme => ({
       padding: theme.spacing.unit * 3,
     },
   },
+  wrapper: {
+    margin: theme.spacing.unit,
+    position: 'relative',
+  },
+  errorText: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-end'
+  },
   buttons: {
     display: 'flex',
-    justifyContent: 'flex-end',
-  },  
+    justifyContent: 'flex-end'
+  },
   button: {
     marginTop: theme.spacing.unit * 5,
     marginLeft: theme.spacing.unit,
   },
+  buttonProgress: {
+    color: green[500],
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: 7,
+    marginLeft: -10,
+  }
 });
 
 const validationSchema = Yup.object({
@@ -79,12 +98,12 @@ class OrderForm extends Component {
   }
 
   render() {
-    const { classes, saveOrder } = this.props;
+    const { classes, saveOrder, fetchError } = this.props;
     const values = {
       id: 123,
       threadId: "",
-      customerId: "",
-      state: "",
+      customerId: 345,
+      state: "DONE",
       created: new Date(),
       modified: new Date()
     };
@@ -94,11 +113,12 @@ class OrderForm extends Component {
         <Paper className={classes.paper}>
           <Formik
             initialValues={values}
+            isInitialValid={true}
             validationSchema={validationSchema}
             onSubmit={(values, { setSubmitting }) => {
               setTimeout(() => {
                 saveOrder(values);
-                alert(JSON.stringify(values, null, 2));
+                // alert(JSON.stringify(values, null, 2));
                 setSubmitting(false);
               }, 400);
             }}
@@ -222,17 +242,31 @@ class OrderForm extends Component {
                       </Grid>
                     </MuiPickersUtilsProvider>
                   </Grid>
-                  <div className={classes.buttons}>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      type="submit"
-                      className={classes.button}
-                      disabled={isSubmitting || !isValid}
-                    >
-                      Add Order
-                    </Button>
-                  </div>
+                  <Grid container spacing={8}>
+                    <Grid item xs={12} sm={6} className={classes.errorText}>
+                      {fetchError && Object.entries(fetchError).length !== 0 &&
+                      <React.Fragment>
+                        <Typography variant="body2" color='error'>
+                        {fetchError.url} {fetchError.httpStatus} ({fetchError.msg})
+                        </Typography>
+                        </React.Fragment>
+                      }
+                    </Grid>
+                    <Grid item xs={12} sm={6} className={classes.buttons}>
+                      <div className={classes.wrapper}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          type="submit"
+                          className={classes.button}
+                          disabled={isSubmitting || !isValid}
+                        >
+                          Add Order
+                        </Button>
+                        {isSubmitting && <CircularProgress size={24} className={classes.buttonProgress} />}
+                      </div>
+                    </Grid>
+                  </Grid>
                 </form>
               )}
           </Formik>
@@ -249,7 +283,11 @@ OrderForm.propTypes = {
 const mapDispatchToProps = dispatch =>
   bindActionCreators({ saveOrder }, dispatch);
 
+const mapStateToProps = state => ({
+  fetchError: selectSaveError(state)
+})
+
 export default connect(
-  null,
+  mapStateToProps,
   mapDispatchToProps
 )(withStyles(styles)(OrderForm))

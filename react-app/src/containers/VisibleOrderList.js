@@ -4,15 +4,14 @@ import OrderList from '../components/OrderList'
 import { VisibilityFilters } from '../redux/order'
 
 import {
-  load,
+  loadOrders,
   selectFetching,
-  selectError,
+  selectLoadError,
   selectOrders,
   selectFilter
 } from '../redux/order';
 
 const getVisibleOrders = (data, filter) => {
-  console.log("data=" + data + ", filter=" + filter)
   switch (filter) {
     case VisibilityFilters.SHOW_ALL:
       return data;
@@ -28,11 +27,11 @@ const getVisibleOrders = (data, filter) => {
 const mapStateToProps = state => ({
   orders: getVisibleOrders(selectOrders(state), selectFilter(state)),
   loading: selectFetching(state),
-  error: selectError(state)
+  error: selectLoadError(state)
 })
 
 const mapDispatchToProps = dispatch =>
-  bindActionCreators({ load }, dispatch);
+  bindActionCreators({ loadOrders }, dispatch);
 
 export default connect(
   mapStateToProps,
