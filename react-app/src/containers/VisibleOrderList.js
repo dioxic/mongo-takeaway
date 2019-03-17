@@ -1,28 +1,38 @@
 import { connect } from 'react-redux'
-import { deliverOrder } from '../actions'
+import { bindActionCreators } from 'redux'
 import OrderList from '../components/OrderList'
 import { VisibilityFilters } from '../actions'
 
-const getVisibleOrders = ({orders, visibilityFilter}) => {
-  switch (visibilityFilter.filter) {
+import {
+  load,
+  selectFetching,
+  selectError,
+  selectOrders,
+  selectFilter
+} from '../redux/order';
+
+const getVisibleOrders = (data, filter) => {
+  console.log("data=" + data + ", filter=" + filter)
+  switch (filter) {
     case VisibilityFilters.SHOW_ALL:
-      return orders.items;
+      return data;
     case VisibilityFilters.SHOW_COMPLETED:
-      return orders.items.filter(t => t.status === "DELIVERED")
+      return data.filter(t => t.status === "DELIVERED")
     case VisibilityFilters.SHOW_ACTIVE:
-      return orders.items.filter(t => t.status !== "DELIVERED")
+      return data.filter(t => t.status !== "DELIVERED")
     default:
-      throw new Error('Unknown filter: ' + visibilityFilter)
+      throw new Error('Unknown filter: ' + filter)
   }
 }
 
-const mapStateToProps = (state) => ({
-  orders: getVisibleOrders(state)
+const mapStateToProps = state => ({
+  orders: getVisibleOrders(selectOrders(state), selectFilter(state)),
+  loading: selectFetching(state),
+  error: selectError(state)
 })
 
-const mapDispatchToProps = dispatch => ({
-	deliverOrder: order => dispatch(deliverOrder(order))
-})
+const mapDispatchToProps = dispatch =>
+  bindActionCreators({ load }, dispatch);
 
 export default connect(
   mapStateToProps,

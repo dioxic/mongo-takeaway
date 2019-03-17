@@ -7,7 +7,7 @@ import VisibleOrderList from '../containers/VisibleOrderList';
 import PropTypes from 'prop-types';
 import Grid from '@material-ui/core/Grid';
 import { withStyles } from '@material-ui/core/styles';
-import Paper from '@material-ui/core/Paper';
+import Checkout from '../checkout';
 
 const styles = theme => ({
   root: {
@@ -24,7 +24,7 @@ const styles = theme => ({
 
 class App extends React.Component {
   state = {
-    spacing: '16',
+    spacing: 16,
   };
 
   render() {
@@ -32,7 +32,7 @@ class App extends React.Component {
     const { spacing } = this.state;
     return (
       <div className="App">
-        <Grid container className={classes.root} spacing={16}>
+        <Grid container className={classes.root} spacing={spacing}>
           <Grid item xs={12}>
             <header className="App-header">
               <img src={logo} className="App-logo" alt="logo" />
@@ -41,6 +41,9 @@ class App extends React.Component {
           <Grid container item xs={5} justify="center">
             <OrderForm/>
           </Grid>
+          {/* <Grid container item xs={5} justify="center">
+            <Checkout/>
+          </Grid>           */}
           <Grid item xs={12}>
             <VisibleOrderList />
           </Grid>

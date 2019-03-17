@@ -37,10 +37,6 @@ dependencies {
     runtimeOnly project(':react-app')
 }
 
-//springBoot {
-//    mainClassName = 'uk.dioxic.mongotakeaway.TakeawayApplication'
-//}
-
 group = 'uk.dioxic'
 version = '0.0.1-SNAPSHOT'
 description = 'mongo-takeaway'
