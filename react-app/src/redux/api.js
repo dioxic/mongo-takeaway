@@ -8,7 +8,7 @@ export function getOrder(id) {
 // }
 
 export function postOrder(order) {
-	return fetch('localhost:8080/api/order', {
+	return fetch('http://localhost:8080/order', {
 		method: 'POST',
 		headers: {
 			'Accept': 'application/json',
