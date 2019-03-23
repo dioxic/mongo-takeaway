@@ -1,7 +1,9 @@
 package uk.dioxic.mongotakeaway.web;
 
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.mongodb.client.result.UpdateResult;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -47,7 +49,8 @@ public class OrderHandler {
                 .contentType(APPLICATION_JSON)
                 .body(fromObject(order)))
             .doOnError(e -> log.error(e.getMessage(), e))
-            .onErrorReturn(status(INTERNAL_SERVER_ERROR).build().block())
+//            .onErrorReturn(MismatchedInputException.class, status(HttpStatus.BAD_GATEWAY).build().block())
+//            .onErrorReturn(status(INTERNAL_SERVER_ERROR).build().block())
             .switchIfEmpty(notFound().build());
     }
 

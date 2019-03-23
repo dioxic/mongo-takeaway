@@ -4,34 +4,33 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import uk.dioxic.faker.Faker;
 import uk.dioxic.mongotakeaway.config.GeneratorProperties;
 import uk.dioxic.mongotakeaway.domain.Customer;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 @Component
 public class CustomerGenerator {
+    private final static CountDownLatch dbInitialised = new CountDownLatch(1);
+    private final static Lock initialiseLock = new ReentrantLock();
     private final Random random = new Random();
+    private final List<Customer> customers = new ArrayList<>();
     private final ReactiveMongoTemplate mongoTemplate;
     private final GeneratorProperties properties;
-    private List<Customer> generatedItems;
-    private volatile boolean dbInitialised;
 
     public CustomerGenerator(ReactiveMongoTemplate mongoTemplate, GeneratorProperties properties) {
         this.mongoTemplate = mongoTemplate;
         this.properties = properties;
-        if (properties.getRate() != 0) {
+
+        if (customers.size() < properties.getCustomers()) {
             Executors.newSingleThreadScheduledExecutor()
                     .schedule(this::runGenerateJob,
                             0,
@@ -39,14 +38,41 @@ public class CustomerGenerator {
         }
     }
 
-    public synchronized void initialiseDatabase() {
-        if (!dbInitialised && properties.isDropCollection()) {
-            log.info("dropping existing customers");
-            mongoTemplate.dropCollection(Customer.class)
-                    .doOnError(e -> log.error(e.getMessage(), e))
-                    .block();
+    /**
+     * Blocks until the DB is initialised.
+     * <p/>
+     * Returns instantly if the DB has already been initialised.
+     */
+    private void initialiseDatabaseIfNeccessary() {
+        if (dbInitialised.getCount() > 0) {
+            if (initialiseLock.tryLock()) {
+                try {
+                    if (properties.isDropCollection()) {
+                        log.info("dropping existing customers");
+                        mongoTemplate.dropCollection(Customer.class)
+                                .doOnError(e -> log.error(e.getMessage(), e))
+                                .block();
+                    } else {
+                        log.info("loading existing customers");
+                        List<Customer> existingCustomers = mongoTemplate.findAll(Customer.class)
+                                .doOnError(e -> log.error(e.getMessage(), e))
+                                .collectList()
+                                .block();
 
-            dbInitialised = true;
+                        if (existingCustomers != null) {
+                            customers.addAll(existingCustomers);
+                        }
+                    }
+                } finally {
+                    dbInitialised.countDown();
+                    initialiseLock.unlock();
+                }
+            }
+            try {
+                dbInitialised.await();
+            } catch (InterruptedException e) {
+                log.warn(e.getMessage(), e);
+            }
         }
     }
 
@@ -55,7 +81,7 @@ public class CustomerGenerator {
     }
 
     public void runGenerateJob() {
-        initialiseDatabase();
+        initialiseDatabaseIfNeccessary();
 
         log.info("generating new customers");
 
@@ -64,8 +90,8 @@ public class CustomerGenerator {
         Flux<Customer> customerFlux = Flux.generate(
                 sink -> sink.next(generateCustomer(faker)));
 
-        generatedItems = customerFlux
-                .take(properties.getCustomers())
+        List<Customer> generatedItems = customerFlux
+                .take(properties.getCustomers() - customers.size())
                 .buffer(1000)
                 .flatMap(mongoTemplate::insertAll)
                 .onErrorContinue((e, o) -> {
@@ -75,14 +101,17 @@ public class CustomerGenerator {
                 .collectList()
                 .doOnNext(list -> log.info("created {} customers", list.size()))
                 .block();
+
+        if (generatedItems != null)
+            customers.addAll(generatedItems);
     }
 
-    public Customer getRandomGeneratedCustomer() {
-        return generatedItems.get(random.nextInt(generatedItems.size()));
+    public Customer getRandomCustomer() {
+        return customers.get(random.nextInt(customers.size()));
     }
 
     public Customer getItem(int index) {
-        return generatedItems.get(index);
+        return customers.get(index);
     }
 
     private volatile int currentIdx = 0;
@@ -92,10 +121,10 @@ public class CustomerGenerator {
         nextLock.lock();
 
         try {
-            if (currentIdx == generatedItems.size()) {
+            if (currentIdx == customers.size()) {
                 currentIdx = 0;
             }
-            return generatedItems.get(currentIdx++);
+            return customers.get(currentIdx++);
         } finally {
             nextLock.unlock();
         }

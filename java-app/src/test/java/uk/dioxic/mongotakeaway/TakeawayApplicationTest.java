@@ -44,7 +44,7 @@ class TakeawayApplicationTest {
 	@BeforeEach
 	void setUp() {
 		//    supposed to bind the router functions but didn't work
-		webTestClient = WebTestClient.bindToRouterFunction(new RouteConfig(new OrderHandler(repository)).orderRoute()).build();
+		webTestClient = WebTestClient.bindToRouterFunction(new RouteConfig().orderRoute(new OrderHandler(repository))).build();
 	}
 
 	@Test

@@ -189,7 +189,7 @@ public class OrderGenerator {
                 .blockLast();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e.getMessage(),e);
         }
 
         log.info("done");

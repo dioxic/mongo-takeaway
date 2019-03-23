@@ -33,7 +33,7 @@ public class ReactiveWebSocketHandler implements WebSocketHandler {
     public Mono<Void> handle(WebSocketSession webSocketSession) {
         webSocketSession.getAttributes().forEach((k, v) -> log.info("k: {}, v: {}", k, v));
 
-        Customer customer = customerGenerator.getRandomGeneratedCustomer();
+        Customer customer = customerGenerator.getRandomCustomer();
         log.info("handling customer {}", customer);
 
         return webSocketSession.send(subscriber.subscribe(new ObjectId(customer.getId()))
