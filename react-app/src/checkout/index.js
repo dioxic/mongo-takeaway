@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import withStyles from '@material-ui/core/styles/withStyles';
 import CssBaseline from '@material-ui/core/CssBaseline';
@@ -101,114 +101,101 @@ const isPageValid = ({ dirty, errors, isInitialValid }, activeStep) => {
     : isInitialValid;
 }
 
-class Checkout extends React.Component {
-  state = {
-    activeStep: 0,
+function Checkout({ classes, }) {
+  const [activeStep, setActiveStep] = useState(0);
+  const initialValues = {
+    firstName: "Bob",
+    lastName: "Biscuit",
+    address1: "",
+    address2: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "",
+    cardName: "",
+    cardNumber: "",
+    expDate: "",
+    ccv: ""
   };
 
-  handleNext = () => {
-    console.log(this.state);
-    this.setState(state => ({
-      activeStep: state.activeStep + 1,
-    }));
+  function handleNext() {
+    setActiveStep(activeStep + 1);
   };
 
-  handleBack = () => {
-    this.setState(state => ({
-      activeStep: state.activeStep - 1,
-    }));
+  function handleBack() {
+    setActiveStep(activeStep - 1);
   };
 
-  handleReset = () => {
-    this.setState({
-      activeStep: 0,
-    });
+  function handleReset() {
+    setActiveStep(0);
   };
 
-  render() {
-    const { classes } = this.props;
-    const { activeStep } = this.state;
-    const values = {
-      firstName: "Bob",
-      lastName: "Biscuit",
-      address1: "",
-      address2: "",
-      city: "",
-      state: "",
-      zip: "",
-      country: "",
-      cardName: "",
-      cardNumber: "",
-      expDate: "",
-      ccv: ""
-    };
-
-    return (
-      <React.Fragment>
-        <CssBaseline />
-        <main className={classes.layout}>
-          <Paper className={classes.paper}>
-            <Typography component="h1" variant="h4" align="center">
-              Checkout
+  return (
+    <React.Fragment>
+      <CssBaseline />
+      <main className={classes.layout}>
+        <Paper className={classes.paper}>
+          <Typography component="h1" variant="h4" align="center">
+            Checkout
             </Typography>
-            <Stepper activeStep={activeStep} className={classes.stepper}>
-              {steps.map(label => (
-                <Step key={label}>
-                  <StepLabel>{label}</StepLabel>
-                </Step>
-              ))}
-            </Stepper>
-            <React.Fragment>
-              {activeStep === steps.length ? (
-                <React.Fragment>
-                  <Typography variant="h5" gutterBottom>
-                    Thank you for your order.
+          <Stepper activeStep={activeStep} className={classes.stepper}>
+            {steps.map(label => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+          <React.Fragment>
+            {activeStep === steps.length ? (
+              <React.Fragment>
+                <Typography variant="h5" gutterBottom>
+                  Thank you for your order.
                   </Typography>
-                  <Typography variant="subtitle1">
-                    Your order number is #2001539. We have emailed your order confirmation, and will
-                    send you an update when your order has shipped.
+                <Typography variant="subtitle1">
+                  Your order number is #2001539. We have emailed your order confirmation, and will
+                  send you an update when your order has shipped.
                   </Typography>
-                </React.Fragment>
-              ) : (
-                  <Formik
-                    initialValues={values}
-                    validationSchema={validationSchema}
-                    onSubmit={(values, { setSubmitting }) => {
-                      setTimeout(() => {
-                        alert(JSON.stringify(values, null, 2));
-                        setSubmitting(false);
-                      }, 400);
-                    }}
-                  >
-                    {(props) => (
-                      <form>
-                        {getStepContent(activeStep, props)}
-                        <div className={classes.buttons}>
-                          {activeStep !== 0 && (
-                            <Button onClick={this.handleBack} className={classes.button}>
-                              Back
-                              </Button>
-                          )}
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            onClick={activeStep === steps.length - 1 ? props.handleSubmit : this.handleNext}
-                            className={classes.button}
-                            disabled={props.isSubmitting || !isPageValid(props, activeStep)}
-                          >
-                            {activeStep === steps.length - 1 ? 'Place order' : 'Next'}
+              </React.Fragment>
+            ) : (
+                <Formik
+                  initialValues={initialValues}
+                  validationSchema={validationSchema}
+                  onSubmit={(values, { setSubmitting }) => {
+                    setTimeout(() => {
+                      alert(JSON.stringify(values, null, 2));
+                      setSubmitting(false);
+                      handleNext();
+                    }, 400);
+                  }}
+                >
+                  {(props) => (
+                    <form>
+                      {getStepContent(activeStep, props)}
+                      <div className={classes.buttons}>
+                        {activeStep !== 0 && (
+                          <Button onClick={handleBack} className={classes.button}>
+                            Back
                           </Button>
-                        </div>
-                      </form>
-                    )}
-                  </Formik>
-                )}
-            </React.Fragment>
-          </Paper>
-        </main>
-      </React.Fragment>
-    );
-  }
+                        )}
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          onClick={activeStep === steps.length - 1 ? props.handleSubmit : handleNext}
+                          className={classes.button}
+                          disabled={props.isSubmitting || !isPageValid(props, activeStep)}
+                        >
+                          {activeStep === steps.length - 1 ? 'Place order' : 'Next'}
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                </Formik>
+              )}
+          </React.Fragment>
+        </Paper>
+      </main>
+    </React.Fragment>
+  );
 }
 
 Checkout.propTypes = {

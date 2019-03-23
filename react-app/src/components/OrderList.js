@@ -10,7 +10,7 @@ import Paper from '@material-ui/core/Paper';
 
 const styles = theme => ({
   root: {
-    width: '100%',
+    // width: '50%',
     marginTop: theme.spacing.unit * 3,
     overflowX: 'auto',
   },
@@ -55,27 +55,3 @@ OrderList.propTypes = {
 };
 
 export default withStyles(styles)(OrderList);
-
-// const OrderList = ({ orders, deliverOrder }) => (
-//   <ul>
-//     {orders.map(order =>
-// 	  <Order
-// 		  key={order.id}
-// 		  {...order}
-// 		  onClick={() => deliverOrder(order.id)} />
-//     )}
-//   </ul>
-// )
-
-// OrderList.propTypes = {
-//   orders: PropTypes.arrayOf(
-//     PropTypes.shape({
-// 	  id: PropTypes.number.isRequired,
-// 	  customerId: PropTypes.number.isRequired,
-// 	  status: PropTypes.string.isRequired
-//     }).isRequired
-//   ).isRequired,
-//   deliverOrder: PropTypes.func.isRequired
-// }
-
-// export default OrderList

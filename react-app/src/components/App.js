@@ -9,52 +9,37 @@ import Grid from '@material-ui/core/Grid';
 import { withStyles } from '@material-ui/core/styles';
 import Checkout from '../checkout';
 
-const styles = theme => ({
+const styles = () => ({
   root: {
     flexGrow: 1,
-  },
-  paper: {
-    height: 140,
-    width: 100,
-  },
-  control: {
-    padding: theme.spacing.unit * 2,
-  },
+  }
 });
 
-class App extends React.Component {
-  state = {
-    spacing: 16,
-  };
+function App({ classes }) {
 
-  render() {
-    const { classes } = this.props;
-    const { spacing } = this.state;
     return (
       <div className="App">
-        <Grid container className={classes.root} spacing={spacing}>
+        <Grid container className={classes.root} spacing={16}>
           <Grid item xs={12}>
             <header className="App-header">
               <img src={logo} className="App-logo" alt="logo" />
             </header>
           </Grid>
-          <Grid container item xs={8} justify="center">
+          <Grid container item xs={6} justify="center">
             <OrderForm/>
           </Grid>
-          {/* <Grid container item xs={5} justify="center">
+          <Grid container item xs={6} justify="center">
             <Checkout/>
-          </Grid>           */}
-          <Grid item xs={12}>
+          </Grid>          
+          <Grid item xs={6} justify="center">
             <VisibleOrderList />
-          </Grid>
-          <Grid item xs={12}>
             <Footer />
           </Grid>
         </Grid>
       </div>
       
     );
-  }
+
 }
 
 App.propTypes = {
