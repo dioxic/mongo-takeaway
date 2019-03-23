@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import uk.dioxic.mongotakeaway.domain.Customer;
+import uk.dioxic.mongotakeaway.domain.GlobalProperties;
 import uk.dioxic.mongotakeaway.domain.Order;
 import uk.dioxic.mongotakeaway.service.ChangeStreamSubscriber;
 
@@ -59,12 +60,14 @@ public class ChangeStreamConfig {
     }
 
     @Bean("globalProperties")
-    public ChangeStreamSubscriber<GeneratorProperties, ObjectId> globalPropertiesSubscriber(ReactiveMongoTemplate reactiveTemplate, ChangeStreamProperties properties) {
-        return ChangeStreamSubscriber.<GeneratorProperties, ObjectId>builder()
+    public ChangeStreamSubscriber<GlobalProperties, String> globalPropertiesSubscriber(ReactiveMongoTemplate reactiveTemplate, ChangeStreamProperties properties) {
+        return ChangeStreamSubscriber.<GlobalProperties, String>builder()
                 .reactiveTemplate(reactiveTemplate)
                 .properties(properties)
-                .targetType(GeneratorProperties.class)
-                .operationTypes(List.of("insert", "update", "delete"))
+                .targetType(GlobalProperties.class)
+                .operationTypes(List.of("insert", "update", "delete", "replace"))
+                .returnFullDocumentOnUpdate(true)
+                .documentIdConverter(bson -> bson.asString().getValue())
                 .build();
     }
 }

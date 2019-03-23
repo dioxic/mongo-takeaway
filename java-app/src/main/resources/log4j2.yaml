@@ -29,13 +29,13 @@ Configuration:
     Logger:
       - name: uk.dioxic.mongotakeaway
         additivity: false
-        level: debug
+        level: trace
         AppenderRef:
           - ref: File
           - ref: STDOUT
       - name: org.mongodb
         additivity: true
-        level: info
+        level: debug
         AppenderRef:
           - ref: File
       - name: org.mongodb.driver.protocol.command

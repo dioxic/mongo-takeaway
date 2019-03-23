@@ -1,6 +1,7 @@
 package uk.dioxic.mongotakeaway.web;
 
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -28,13 +29,13 @@ public class OrderController {
     @GetMapping(path = "/order/{oid}", produces = "application/json")
     public Mono<Order> findById(@PathVariable String oid) {
         log.info("finding stuff for {}", oid);
-        return repository.findById(oid);
+        return repository.findById(new ObjectId(oid));
     }
 
     @DeleteMapping(path = "/order/{oid}", produces = "application/json")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Mono<Void> deleteById(@PathVariable String oid) {
-        return repository.deleteById(oid);
+        return repository.deleteById(new ObjectId(oid));
     }
 
     @PostMapping(path = "/order", consumes = "application/json", produces = "application/json")
@@ -47,7 +48,7 @@ public class OrderController {
     @PatchMapping(path = "/order/{oid}", produces = "application/json")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Mono<Void> patch(@PathVariable String oid, @RequestParam Order.State state) {
-        return repository.updateById(oid, Map.of("state", state))
+        return repository.updateById(new ObjectId(oid), Map.of("state", state))
                 .filter(result -> result.getModifiedCount() < 1)
                 .then(Mono.empty());
     }

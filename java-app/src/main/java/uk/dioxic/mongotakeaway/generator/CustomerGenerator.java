@@ -1,6 +1,8 @@
 package uk.dioxic.mongotakeaway.generator;
 
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -8,6 +10,9 @@ import reactor.core.publisher.Mono;
 import uk.dioxic.faker.Faker;
 import uk.dioxic.mongotakeaway.config.GeneratorProperties;
 import uk.dioxic.mongotakeaway.domain.Customer;
+import uk.dioxic.mongotakeaway.domain.GlobalProperties;
+import uk.dioxic.mongotakeaway.service.ChangeStreamSubscriber;
+import uk.dioxic.mongotakeaway.service.GlobalPropertyService;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -18,23 +23,32 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 @Component
-public class CustomerGenerator {
+public class CustomerGenerator implements Runnable {
     private final static CountDownLatch dbInitialised = new CountDownLatch(1);
     private final static Lock initialiseLock = new ReentrantLock();
     private final Random random = new Random();
     private final List<Customer> customers = new ArrayList<>();
     private final ReactiveMongoTemplate mongoTemplate;
-    private final GeneratorProperties properties;
+    private final GlobalPropertyService propertyService;
 
-    public CustomerGenerator(ReactiveMongoTemplate mongoTemplate, GeneratorProperties properties) {
+    public CustomerGenerator(ReactiveMongoTemplate mongoTemplate,
+                             GlobalPropertyService propertyService) {
         this.mongoTemplate = mongoTemplate;
-        this.properties = properties;
+        this.propertyService = propertyService;
+        propertyService.addListener(this);
 
-        if (customers.size() < properties.getCustomers()) {
-            Executors.newSingleThreadScheduledExecutor()
-                    .schedule(this::runGenerateJob,
-                            0,
-                            TimeUnit.SECONDS);
+//        if (customers.size() < propertyService.getProperties().generator().getCustomers()) {
+//            Executors.newSingleThreadScheduledExecutor()
+//                    .schedule(this::runGenerateJob,
+//                            0,
+//                            TimeUnit.SECONDS);
+//        }
+    }
+
+    @Override
+    public void run() {
+        if (customers.size() < propertyService.getProperties().generator().getCustomers()) {
+            runGenerateJob();
         }
     }
 
@@ -47,7 +61,7 @@ public class CustomerGenerator {
         if (dbInitialised.getCount() > 0) {
             if (initialiseLock.tryLock()) {
                 try {
-                    if (properties.isDropCollection()) {
+                    if (propertyService.getProperties().generator().isDropCollection()) {
                         log.info("dropping existing customers");
                         mongoTemplate.dropCollection(Customer.class)
                                 .doOnError(e -> log.error(e.getMessage(), e))
@@ -91,7 +105,7 @@ public class CustomerGenerator {
                 sink -> sink.next(generateCustomer(faker)));
 
         List<Customer> generatedItems = customerFlux
-                .take(properties.getCustomers() - customers.size())
+                .take(propertyService.getProperties().generator().getCustomers() - customers.size())
                 .buffer(1000)
                 .flatMap(mongoTemplate::insertAll)
                 .onErrorContinue((e, o) -> {

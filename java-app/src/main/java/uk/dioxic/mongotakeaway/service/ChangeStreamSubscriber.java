@@ -4,6 +4,9 @@ import com.mongodb.annotations.ThreadSafe;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.WordUtils;
+import org.apache.commons.text.CaseUtils;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.BsonValue;
@@ -11,6 +14,8 @@ import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.ChangeStreamOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.messaging.ChangeStreamRequest;
 import org.springframework.data.mongodb.core.query.Criteria;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.DirectProcessor;
@@ -36,9 +41,9 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 @ThreadSafe
 public class ChangeStreamSubscriber<T, ID> {
     private static final String ALL = "ALL";
-    private DirectProcessor<ChangeStreamEvent<T>> processor;
-    private ReactiveMongoTemplate reactiveTemplate;
-    private ConcurrentHashMap<Object, AtomicInteger> externalSubscriptions = new ConcurrentHashMap<>();
+    private final DirectProcessor<ChangeStreamEvent<T>> processor;
+    private final ReactiveMongoTemplate reactiveTemplate;
+    private final ConcurrentHashMap<Object, AtomicInteger> externalSubscriptions = new ConcurrentHashMap<>();
     private InternalSubscriber csSubscriber;
     private ChangeStreamProperties properties;
     private volatile boolean resubscriptionScheduled = false;
@@ -136,7 +141,7 @@ public class ChangeStreamSubscriber<T, ID> {
                     ChangeStreamOptions options = changeStreamOptions.apply(subs, builder).build();
 
                     reactiveTemplate
-                            .changeStream(options, targetType)
+                            .changeStream(getCollectionName(targetType), options, targetType)
                             .doOnNext(o -> log.trace("receiving {} notification for {}", Objects.requireNonNull(o.getOperationType()).getValue(), Objects.requireNonNull(o.getBody())))
                             .doOnSubscribe(x -> log.info("{} changestream created with token={}", targetType.getSimpleName(), options.getResumeToken()
                                     .filter(BsonValue::isDocument)
@@ -157,6 +162,17 @@ public class ChangeStreamSubscriber<T, ID> {
                 resubscriptionLock.unlock();
             }
         }
+    }
+
+    private String getCollectionName(Class<T> targetType) {
+        return Optional.ofNullable(targetType.getAnnotation(Document.class))
+                .map(Document::collection)
+                .filter(coll -> !coll.isEmpty())
+                .orElseGet(() -> transformClassNameToCollection(targetType));
+    }
+
+    private String transformClassNameToCollection(Class<T> targetType) {
+        return Character.toLowerCase(targetType.getSimpleName().charAt(0)) + targetType.getSimpleName().substring(1);
     }
 
     public Flux<ChangeStreamEvent<T>> subscribe() {
