@@ -25,13 +25,13 @@ function App({ classes }) {
               <img src={logo} className="App-logo" alt="logo" />
             </header>
           </Grid>
-          <Grid container item xs={6} justify="center">
+          <Grid item xs={6}>
             <OrderForm/>
           </Grid>
-          <Grid container item xs={6} justify="center">
+          <Grid item xs={6}>
             <Checkout/>
           </Grid>          
-          <Grid item xs={6} justify="center">
+          <Grid item xs={6}>
             <VisibleOrderList />
             <Footer />
           </Grid>

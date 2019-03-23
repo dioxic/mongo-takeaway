@@ -33,23 +33,20 @@ const styles = theme => ({
 });
 
 const validationSchema = Yup.object({
-  id: Yup.string("Enter an Id")
-    .required("Id is required"),
   threadId: Yup.string("Enter a thread Id"),
-  customerId: Yup.number("Enter your customer Id")
+  customerId: Yup.string("Enter your customer Id")
     .required("Enter your customer Id"),
   state: Yup.string("Enter order status")
     .required("Confirm order status")
-    .oneOf(["DONE", "PENDING", "DELIVERED"], "Invalid state (must be DONE or PENDING)")
+    .oneOf(["ACCEPTED", "CREATED", "COOKING", "ONROUTE", "PENDING", "DELIVERED"], "Invalid status")
 });
 
 function OrderForm(props) {
-  const { classes, saveOrder } = props;
+  const { classes, saveOrder, fetchError, saving } = props;
   
   const initialValues = {
-    id: 123,
     threadId: "",
-    customerId: 345,
+    customerId: "5c960f41684e1567ef42fb69",
     state: "DONE",
     created: new Date(),
     modified: new Date()
@@ -65,11 +62,15 @@ function OrderForm(props) {
           onSubmit={(values, { setSubmitting }) => {
             setTimeout(() => {
               saveOrder(values);
-              alert(JSON.stringify(values, null, 2));
+              //alert(JSON.stringify(values, null, 2));
               setSubmitting(false);
-            }, 1000);
+            }, 1);
           }}
-          render={formikProps => <MuiOrderForm {...formikProps} {...props}/>}
+          render={formikProps =>
+            <MuiOrderForm {...formikProps}
+              fetchError={fetchError}
+              saving={saving}/>
+          }
         />
       </Paper>
     </main >

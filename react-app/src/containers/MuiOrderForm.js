@@ -41,16 +41,28 @@ const styles = theme => ({
 
 const orderStates = [
 	{
-	  value: 'DONE',
-	  label: 'Done',
-	},
-	{
 	  value: 'DELIVERED',
 	  label: 'Delivered',
 	},
 	{
+	  value: 'ACCEPTED',
+	  label: 'Accepted',
+	},
+	{
+	  value: 'CREATED',
+	  label: 'Created',
+	},
+	{
+	  value: 'ONROUTE',
+	  label: 'On Route',
+	},
+	{
 	  value: 'PENDING',
 	  label: 'Pending',
+	},
+	{
+	  value: 'COOKING',
+	  label: 'Cooking',
 	}
   ];
 
@@ -69,25 +81,23 @@ const MuiOrderForm = ({
   }) => {
 	return (<Form>
 	  <Typography variant="h6" gutterBottom>
-		New Order
+			New Order
 	  </Typography>
 	  <Grid container spacing={32}>
-		<Grid item xs={6} sm={3}>
+		<Grid item xs={6} sm={6}>
 		  <TextField
 			id="id"
 			name="id"
 			label="Order Id"
-			type="number"
 			helperText={touched.id ? errors.id : ""}
 			error={touched.id && Boolean(errors.id)}
 			onChange={handleChange}
 			onBlur={handleBlur}
 			value={values.id}
 			fullWidth
-			required
 		  />
 		</Grid>
-		<Grid item xs={6} sm={3}>
+		<Grid item xs={6} sm={6}>
 		  <TextField
 			id="threadId"
 			name="threadId"
@@ -101,12 +111,11 @@ const MuiOrderForm = ({
 			fullWidth
 		  />
 		</Grid>
-		<Grid item xs={12} sm={3}>
+		<Grid item xs={12} sm={6}>
 		  <TextField
 			id="customerId"
 			name="customerId"
 			label="Customer Id"
-			type="number"
 			helperText={touched.customerId ? errors.customerId : ""}
 			error={touched.customerId && Boolean(errors.customerId)}
 			onChange={handleChange}
@@ -116,7 +125,7 @@ const MuiOrderForm = ({
 			required
 		  />
 		</Grid>
-		<Grid item xs={12} sm={3}>
+		<Grid item xs={12} sm={6}>
 		  <TextField
 			id="state"
 			name="state"
