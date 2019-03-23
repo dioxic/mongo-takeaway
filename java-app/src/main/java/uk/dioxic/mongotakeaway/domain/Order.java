@@ -16,7 +16,7 @@ import static java.time.LocalDateTime.now;
 @Document
 public class Order {
     @Id
-    private String id;
+    private ObjectId id;
     private Long threadId;
     private ObjectId customerId;
     private State state = State.CREATED;
