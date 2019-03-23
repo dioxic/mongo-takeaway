@@ -1,13 +1,17 @@
 package uk.dioxic.mongotakeaway.service;
 
 import com.mongodb.annotations.ThreadSafe;
+import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.BsonValue;
+import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.ChangeStreamOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
@@ -31,10 +35,10 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 @Slf4j
 @ThreadSafe
 public class ChangeStreamSubscriber<T, ID> {
-
+    private static final String ALL = "ALL";
     private DirectProcessor<ChangeStreamEvent<T>> processor;
     private ReactiveMongoTemplate reactiveTemplate;
-    private ConcurrentHashMap<ID, AtomicInteger> externalSubscriptions = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<Object, AtomicInteger> externalSubscriptions = new ConcurrentHashMap<>();
     private InternalSubscriber csSubscriber;
     private ChangeStreamProperties properties;
     private volatile boolean resubscriptionScheduled = false;
@@ -43,9 +47,10 @@ public class ChangeStreamSubscriber<T, ID> {
     // config properties
     private Class<T> targetType;
     private List<String> operationTypes;
+    private boolean returnFullDocumentOnUpdate;
     private Function<ChangeStreamEvent<T>, ID> extractKeyField;
     private Function<ID, Predicate<ChangeStreamEvent<T>>> postFilter;
-    private BiFunction<Set<ID>,
+    private BiFunction<Set<Object>,
             ChangeStreamOptions.ChangeStreamOptionsBuilder,
             ChangeStreamOptions.ChangeStreamOptionsBuilder> changeStreamOptions;
 
@@ -53,10 +58,12 @@ public class ChangeStreamSubscriber<T, ID> {
     ChangeStreamSubscriber(ReactiveMongoTemplate reactiveTemplate,
                            ChangeStreamProperties properties,
                            Class<T> targetType,
-                           BiFunction<Set<ID>, ChangeStreamOptions.ChangeStreamOptionsBuilder, ChangeStreamOptions.ChangeStreamOptionsBuilder> changeStreamOptions,
+                           BiFunction<Set<Object>, ChangeStreamOptions.ChangeStreamOptionsBuilder,
+                                   ChangeStreamOptions.ChangeStreamOptionsBuilder> changeStreamOptions,
                            List<String> operationTypes,
                            String keyField,
-                           Function<BsonValue, ID> documentIdCoverter,
+                           boolean returnFullDocumentOnUpdate,
+                           Function<BsonValue, ID> documentIdConverter,
                            Function<ChangeStreamEvent<T>, ID> extractKeyField,
                            Function<ID, Predicate<ChangeStreamEvent<T>>> postFilter) {
         Objects.requireNonNull(reactiveTemplate, "reactiveTemplate");
@@ -67,16 +74,15 @@ public class ChangeStreamSubscriber<T, ID> {
         this.properties = properties;
         this.targetType = targetType;
         this.postFilter = postFilter;
+        this.returnFullDocumentOnUpdate = returnFullDocumentOnUpdate;
         this.operationTypes = Optional.ofNullable(operationTypes).orElse(List.of("insert", "update"));
         this.changeStreamOptions = Optional.ofNullable(changeStreamOptions).orElse(this::defaultChangeStreamOptions);
-
-        Function<ChangeStreamEvent<T>, ID> ex = extractKeyField;
 
         if (postFilter == null) {
             if (extractKeyField != null)
                 this.postFilter = id -> (cse -> id.equals(extractKeyField.apply(cse)));
-            else if (documentIdCoverter != null)
-                this.postFilter = id -> (cse -> id.equals(documentIdCoverter.apply(Objects.requireNonNull(cse.getRaw().getDocumentKey().get("_id"))))) ;
+            else if (documentIdConverter != null)
+                this.postFilter = id -> (cse -> id.equals(documentIdConverter.apply(getDocumentKey(cse))));
             else
                 this.postFilter = id -> (cse -> true);
         }
@@ -89,16 +95,21 @@ public class ChangeStreamSubscriber<T, ID> {
                         TimeUnit.SECONDS);
     }
 
-    private HashSet<ID> getSubscriptionKeySet() {
+    private HashSet<Object> getSubscriptionKeySet() {
         return new HashSet<>(externalSubscriptions.keySet());
     }
 
-    private ChangeStreamOptions.ChangeStreamOptionsBuilder defaultChangeStreamOptions(Set<ID> subs, ChangeStreamOptions.ChangeStreamOptionsBuilder builder) {
-        return builder.filter(newAggregation(match(
-                where("documentKey._id").in(subs)
-                        .and("operationType").in(operationTypes)
+    private ChangeStreamOptions.ChangeStreamOptionsBuilder defaultChangeStreamOptions(Set<Object> subs, ChangeStreamOptions.ChangeStreamOptionsBuilder builder) {
+        Criteria criteria = where("operationType").in(operationTypes);
+        if (subs != null && !subs.isEmpty() && !subs.contains(ALL)) {
+            criteria = criteria.and("documentKey._id").in(subs);
+        }
 
-        )));
+        builder = builder.filter(newAggregation(match(criteria)));
+        if (returnFullDocumentOnUpdate) {
+            builder = builder.returnFullDocumentOnUpdate();
+        }
+        return builder;
     }
 
     private void resubscribe() {
@@ -107,7 +118,7 @@ public class ChangeStreamSubscriber<T, ID> {
 
             try {
                 ChangeStreamOptions.ChangeStreamOptionsBuilder builder = ChangeStreamOptions.builder();
-                Set<ID> subs = new HashSet<>(externalSubscriptions.keySet());
+                Set<Object> subs = new HashSet<>(externalSubscriptions.keySet());
 
                 if (csSubscriber != null) {
                     csSubscriber.cancel();
@@ -119,7 +130,7 @@ public class ChangeStreamSubscriber<T, ID> {
 
                 if (!subs.isEmpty()) {
                     // deferred subscribe
-                    log.info("pausing {} sec before changestream creation", properties.getSubscriptionPause());
+                    log.info("pausing {} sec before {} changestream creation", properties.getSubscriptionPause(), targetType.getSimpleName());
                     Thread.sleep(properties.getSubscriptionPause() * 1000);
 
                     ChangeStreamOptions options = changeStreamOptions.apply(subs, builder).build();
@@ -127,7 +138,7 @@ public class ChangeStreamSubscriber<T, ID> {
                     reactiveTemplate
                             .changeStream(options, targetType)
                             .doOnNext(o -> log.trace("receiving {} notification for {}", Objects.requireNonNull(o.getOperationType()).getValue(), Objects.requireNonNull(o.getBody())))
-                            .doOnSubscribe(x -> log.info("changestream created for subscriptions {} with token={}", subs, options.getResumeToken()
+                            .doOnSubscribe(x -> log.info("{} changestream created with token={}", targetType.getSimpleName(), options.getResumeToken()
                                     .filter(BsonValue::isDocument)
                                     .map(BsonValue::asDocument)
                                     .map(doc -> doc.get("_data"))
@@ -135,8 +146,8 @@ public class ChangeStreamSubscriber<T, ID> {
                                     .map(BsonValue::asString)
                                     .map(BsonString::getValue)
                                     .orElse("null")))
-                            .doOnComplete(() -> log.info("changestream complete"))
-                            .doOnCancel(() -> log.info("changestream cancelled"))
+                            .doOnComplete(() -> log.info("{} changestream  complete", targetType.getSimpleName()))
+                            .doOnCancel(() -> log.info("{} changestream cancelled", targetType.getSimpleName()))
                             .doOnError(e -> log.error(e.getMessage()))
                             .subscribe(csSubscriber = new InternalSubscriber(processor, csSubscriber));
                 }
@@ -148,9 +159,30 @@ public class ChangeStreamSubscriber<T, ID> {
         }
     }
 
+    public Flux<ChangeStreamEvent<T>> subscribe() {
+        externalSubscriptions.computeIfAbsent(ALL, c -> {
+            log.info("subscribing to ALL {}", targetType.getSimpleName());
+            resubscriptionScheduled = true;
+            return new AtomicInteger(0);
+        }).incrementAndGet();
+
+        return processor;
+    }
+
+    public void unsubscribe() {
+        externalSubscriptions.computeIfPresent(ALL, (c, atomic) -> {
+            if (atomic.decrementAndGet() <= 0) {
+                log.info("unsubscribing to ALL {}", targetType.getSimpleName());
+                resubscriptionScheduled = true;
+                return null;
+            } else
+                return atomic;
+        });
+    }
+
     public Flux<ChangeStreamEvent<T>> subscribe(ID id) {
         externalSubscriptions.computeIfAbsent(id, c -> {
-            log.info("subscribing id {}", id);
+            log.info("subscribing to {} [id={}]", targetType.getSimpleName(), id);
             resubscriptionScheduled = true;
             return new AtomicInteger(0);
         }).incrementAndGet();
@@ -162,12 +194,24 @@ public class ChangeStreamSubscriber<T, ID> {
     public void unsubscribe(ID id) {
         externalSubscriptions.computeIfPresent(id, (c, atomic) -> {
             if (atomic.decrementAndGet() <= 0) {
-                log.info("unsubscribing id {}", id);
+                log.info("unsubscribing to {} [id={}]", targetType.getSimpleName(), id);
                 resubscriptionScheduled = true;
                 return null;
             } else
                 return atomic;
         });
+    }
+
+    public static BsonValue getDocumentKey(ChangeStreamEvent<?> cse) {
+        return Optional.ofNullable(cse)
+                .map(ChangeStreamEvent::getRaw)
+                .map(ChangeStreamDocument::getDocumentKey)
+                .map(docKey -> docKey.get("_id"))
+        .get();
+    }
+
+    public static ObjectId getDocumentKeyAsObjectId(ChangeStreamEvent<?> cse) {
+        return getDocumentKey(cse).asObjectId().getValue();
     }
 
     private class InternalSubscriber extends BaseSubscriber<ChangeStreamEvent<T>> {

@@ -31,7 +31,7 @@ public class ChangeStreamConfig {
                         (subs, builder) -> builder.filter(newAggregation(match(
                                 where("fullDocument.customerId").in(subs)
                                         .and("operationType").in("insert", "update"))))
-                                .fullDocumentLookup(FullDocument.UPDATE_LOOKUP)
+                                .returnFullDocumentOnUpdate()
                 )
                 .build();
     }
@@ -43,7 +43,7 @@ public class ChangeStreamConfig {
                 .properties(properties)
                 .targetType(Order.class)
                 .operationTypes(List.of("insert"))
-                .documentIdCoverter(bson -> bson.asObjectId().getValue())
+                .documentIdConverter(bson -> bson.asObjectId().getValue())
                 .build();
     }
 
@@ -54,7 +54,17 @@ public class ChangeStreamConfig {
                 .properties(properties)
                 .targetType(Customer.class)
                 .operationTypes(List.of("insert", "update", "delete"))
-                .documentIdCoverter(bson -> bson.asObjectId().getValue())
+                .postFilter((id -> cse -> id.equals(ChangeStreamSubscriber.getDocumentKeyAsObjectId(cse))))
+                .build();
+    }
+
+    @Bean("globalProperties")
+    public ChangeStreamSubscriber<GeneratorProperties, ObjectId> globalPropertiesSubscriber(ReactiveMongoTemplate reactiveTemplate, ChangeStreamProperties properties) {
+        return ChangeStreamSubscriber.<GeneratorProperties, ObjectId>builder()
+                .reactiveTemplate(reactiveTemplate)
+                .properties(properties)
+                .targetType(GeneratorProperties.class)
+                .operationTypes(List.of("insert", "update", "delete"))
                 .build();
     }
 }
