@@ -5,8 +5,14 @@ import org.bson.BsonValue;
 import org.bson.types.ObjectId;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.mongodb.core.ChangeStreamEvent;
+import org.springframework.data.mongodb.core.ChangeStreamOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.query.Query;
+import reactor.core.publisher.Flux;
 import uk.dioxic.mongotakeaway.domain.Customer;
+import uk.dioxic.mongotakeaway.domain.Event;
 import uk.dioxic.mongotakeaway.domain.GlobalProperties;
 import uk.dioxic.mongotakeaway.domain.Order;
 import uk.dioxic.mongotakeaway.service.ChangeStreamSubscriber;
@@ -57,6 +63,20 @@ public class ChangeStreamConfig {
                 .operationTypes(List.of("insert", "update", "delete"))
                 .postFilter((id -> cse -> id.equals(ChangeStreamSubscriber.getDocumentKeyAsObjectId(cse))))
                 .build();
+    }
+
+    @Bean("globalPropertiesFlux")
+    public Flux<ChangeStreamEvent<GlobalProperties>> orderFlux(ReactiveMongoTemplate reactiveTemplate) {
+        return reactiveTemplate.changeStream(ChangeStreamSubscriber.getCollectionName(GlobalProperties.class), ChangeStreamOptions.builder().build(), GlobalProperties.class);
+    }
+
+    @Bean("eventFlux")
+    public Flux<ChangeStreamEvent<Event>> eventFlux(ReactiveMongoTemplate reactiveTemplate) {
+        return reactiveTemplate.changeStream(ChangeStreamSubscriber.getCollectionName(Event.class),
+                ChangeStreamOptions.builder()
+                        .filter(newAggregation(match(where("operationType").in("insert"))))
+                        .build(),
+                Event.class);
     }
 
     @Bean("globalProperties")

@@ -164,14 +164,14 @@ public class ChangeStreamSubscriber<T, ID> {
         }
     }
 
-    private String getCollectionName(Class<T> targetType) {
+    public static String getCollectionName(Class<?> targetType) {
         return Optional.ofNullable(targetType.getAnnotation(Document.class))
                 .map(Document::collection)
                 .filter(coll -> !coll.isEmpty())
                 .orElseGet(() -> transformClassNameToCollection(targetType));
     }
 
-    private String transformClassNameToCollection(Class<T> targetType) {
+    public static String transformClassNameToCollection(Class<?> targetType) {
         return Character.toLowerCase(targetType.getSimpleName().charAt(0)) + targetType.getSimpleName().substring(1);
     }
 

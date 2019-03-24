@@ -4,9 +4,16 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.EventListener;
+import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 import uk.dioxic.mongotakeaway.domain.GlobalProperties;
+import uk.dioxic.mongotakeaway.event.PropertiesChangedEvent;
 import uk.dioxic.mongotakeaway.repository.PropertyRepository;
 
 import java.util.ArrayList;
@@ -14,39 +21,37 @@ import java.util.List;
 
 @Slf4j
 @Service
-public class GlobalPropertyService implements ApplicationListener<ApplicationReadyEvent> {
+public class GlobalPropertyService {
 
     @Getter
     private GlobalProperties properties;
-    private final ChangeStreamSubscriber<GlobalProperties, String> changeStream;
     private final PropertyRepository repository;
+    private final ApplicationEventPublisher publisher;
+    private final Flux<ChangeStreamEvent<GlobalProperties>> propertiesFlux;
     private final List<Runnable> listeners = new ArrayList<>();
 
-    public GlobalPropertyService(@Qualifier("globalProperties") ChangeStreamSubscriber<GlobalProperties, String> changeStream,
+    public GlobalPropertyService(Flux<ChangeStreamEvent<GlobalProperties>> propertiesFlux,
+                                 ApplicationEventPublisher publisher,
                                  PropertyRepository repository) {
-        this.changeStream = changeStream;
+        this.publisher = publisher;
         this.repository = repository;
+        this.propertiesFlux = propertiesFlux;
     }
 
-    public void addListener(Runnable runnable) {
-        listeners.add(runnable);
-    }
-
-    public void removeListener(Runnable runnable) {
-        listeners.remove(runnable);
-    }
-
-
-    @Override
-    public void onApplicationEvent(ApplicationReadyEvent event) {
+    @EventListener
+    public void handleApplicationReady(ApplicationReadyEvent event) {
         log.info("reading global properties");
         properties = repository.findById("MAIN").block();
         log.info("props = {}", properties);
-        changeStream.subscribe()
+        publisher.publishEvent(new PropertiesChangedEvent(properties));
+
+        propertiesFlux
+                .publishOn(Schedulers.elastic())
                 .subscribe(cse -> {
                     log.info("change to global properties {}", cse.getBody());
                     properties = cse.getBody();
-                    listeners.forEach(Runnable::run);
+                    publisher.publishEvent(new PropertiesChangedEvent(properties));
                 });
     }
+
 }
