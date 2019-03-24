@@ -36,7 +36,7 @@ public class ReactiveWebSocketHandler implements WebSocketHandler {
         Customer customer = customerGenerator.getRandomCustomer();
         log.info("handling customer {}", customer);
 
-        return webSocketSession.send(subscriber.subscribe(new ObjectId(customer.getId()))
+        return webSocketSession.send(subscriber.subscribe(customer.getId())
                 .map(ChangeStreamEvent::getRaw)
                 .map(ChangeStreamDocument::getFullDocument)
                 .map(DocumentUtil::toJson)
@@ -44,7 +44,7 @@ public class ReactiveWebSocketHandler implements WebSocketHandler {
                 .doOnError(e -> log.error(e.getMessage(), e))
                 .and(webSocketSession.receive()
                         .map(WebSocketMessage::getPayloadAsText)
-                        .doOnComplete(() -> subscriber.unsubscribe(new ObjectId(customer.getId())))
+                        .doOnComplete(() -> subscriber.unsubscribe(customer.getId()))
                 );
     }
 }

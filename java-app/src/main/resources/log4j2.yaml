@@ -33,12 +33,13 @@ Configuration:
         AppenderRef:
           - ref: File
           - ref: STDOUT
+            level: info
       - name: org.mongodb
         additivity: true
         level: debug
         AppenderRef:
           - ref: File
-      - name: org.mongodb.driver.protocol.command
+      - name: org.mongodb.driver
         additivity: true
         level: info
         AppenderRef:

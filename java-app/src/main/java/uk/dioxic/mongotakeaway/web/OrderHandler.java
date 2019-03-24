@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import uk.dioxic.mongotakeaway.domain.Order;
 import uk.dioxic.mongotakeaway.repository.OrderRepository;
@@ -63,21 +64,27 @@ public class OrderHandler {
 
     public Mono<ServerResponse> modifyOrder(ServerRequest request) {
         log.info(request.queryParams().toString());
-        return defaultModifyResponse(repository.updateById(
-                    new ObjectId(id(request)),
-                    request.queryParams().toSingleValueMap()
-                )
-                .map(UpdateResult::getModifiedCount));
+        return defaultModifyResponse(Mono.justOrEmpty(id(request))
+                .doOnNext(order -> log.info("handling create request for {}", order))
+                .map(ObjectId::new)
+                .flatMap(id -> repository.updateById(id,
+                    request.queryParams().toSingleValueMap()))
+                .map(UpdateResult::getModifiedCount)
+        );
     }
 
-    private static Mono<ServerResponse> defaultReadResponse(Publisher<Order> orders) {
-        return ServerResponse
-                .ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(orders, Order.class)
-                .doOnError(e -> log.error(e.getMessage(), e))
-                .onErrorReturn(status(INTERNAL_SERVER_ERROR).build().block())
+    private static Mono<ServerResponse> defaultReadResponse(Mono<Order> orders) {
+        return orders
+                .flatMap(o -> ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(fromObject(o)))
                 .switchIfEmpty(notFound().build());
+    }
+
+    private static Mono<ServerResponse> defaultReadResponse(Flux<Order> orders) {
+        return ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(orders, Order.class);
     }
 
 

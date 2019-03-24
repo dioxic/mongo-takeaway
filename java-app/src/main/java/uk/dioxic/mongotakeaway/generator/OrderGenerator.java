@@ -155,7 +155,7 @@ public class OrderGenerator {
             Flux<Order> orderFlux = Flux.generate(
                 () -> new Order(ObjectId.get(), 0L),
                 (state, sink) -> {
-                    Order order = new Order(new ObjectId(customerGenerator.getNext().getId()), state.getThreadId()+1);
+                    Order order = new Order(customerGenerator.getNext().getId(), state.getThreadId()+1);
                     order.setItems(generateItems());
                     sink.next(order);
                     return order;
