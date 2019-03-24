@@ -2,7 +2,6 @@ package uk.dioxic.mongotakeaway.service;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.text.WordUtils;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -12,9 +11,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 import uk.dioxic.mongotakeaway.domain.Event;
-import uk.dioxic.mongotakeaway.domain.GlobalProperties;
-import uk.dioxic.mongotakeaway.event.CustomersReloadedEvent;
-import uk.dioxic.mongotakeaway.event.PropertiesChangedEvent;
 import uk.dioxic.mongotakeaway.repository.EventRepository;
 
 import java.lang.reflect.InvocationTargetException;

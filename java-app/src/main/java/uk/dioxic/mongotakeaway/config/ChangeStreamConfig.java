@@ -1,15 +1,11 @@
 package uk.dioxic.mongotakeaway.config;
 
-import com.mongodb.client.model.changestream.FullDocument;
-import org.bson.BsonValue;
 import org.bson.types.ObjectId;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.ChangeStreamOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.query.Query;
 import reactor.core.publisher.Flux;
 import uk.dioxic.mongotakeaway.domain.Customer;
 import uk.dioxic.mongotakeaway.domain.Event;

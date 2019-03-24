@@ -1,12 +1,10 @@
 package uk.dioxic.mongotakeaway.service;
 
 import com.mongodb.client.result.DeleteResult;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import uk.dioxic.mongotakeaway.domain.GlobalLock;

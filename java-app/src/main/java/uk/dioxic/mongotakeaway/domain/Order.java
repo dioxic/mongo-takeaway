@@ -1,6 +1,7 @@
 package uk.dioxic.mongotakeaway.domain;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -14,6 +15,7 @@ import static java.time.LocalDateTime.now;
 
 @Data
 @Document
+@NoArgsConstructor
 public class Order {
     @Id
     private ObjectId id;
@@ -23,9 +25,6 @@ public class Order {
     private LocalDateTime created = now();
     private LocalDateTime modified = now();
     private List<OrderLine> items;
-
-    public Order() {
-    }
 
     public Order(Order order) {
         this.threadId = order.threadId;
