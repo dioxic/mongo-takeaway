@@ -63,7 +63,7 @@ class TakeawayApplicationTest {
 		when(repository.findAll())
 				.thenReturn(Flux.range(0, 5)
 					.map(i -> new Order())
-					.doOnNext(order -> order.setId(ObjectId.get().toHexString())
+					.doOnNext(order -> order.setId(ObjectId.get())
 				));
 
 		webTestClient.get().uri("/order")
@@ -80,9 +80,9 @@ class TakeawayApplicationTest {
 	@Test
 	public void findById_ok() {
 		Order order = new Order();
-		order.setId("5c77274bf9200106683b5d82");
+		order.setId(ObjectId.get());
 
-		when(repository.findById(Mockito.<String>any()))
+		when(repository.findById(Mockito.<ObjectId>any()))
 				.thenReturn(Mono.just(order));
 
 		webTestClient.get().uri("/order/"+ order.getId())
@@ -98,9 +98,9 @@ class TakeawayApplicationTest {
 	@Test
 	public void findById_notFound() {
 		Order order = new Order();
-		order.setId("5c77274bf9200106683b5d82");
+		order.setId(ObjectId.get());
 
-		when(repository.findById(Mockito.<String>any()))
+		when(repository.findById(Mockito.<ObjectId>any()))
 				.thenReturn(Mono.empty());
 
 		webTestClient.get().uri("/order/"+ order.getId())
@@ -115,7 +115,7 @@ class TakeawayApplicationTest {
 	public void save() {
 		Order order = new Order();
 		Order orderWithId = new Order(order);
-		orderWithId.setId("5c77274bf9200106683b5d82");
+		orderWithId.setId(ObjectId.get());
 
 		when(repository.save(order))
 				.thenReturn(Mono.just(orderWithId));
@@ -134,7 +134,7 @@ class TakeawayApplicationTest {
 
 	@Test
 	public void delete_exists() {
-		String oid = ObjectId.get().toHexString();
+		ObjectId oid = ObjectId.get();
 		when(repository.deleteByIdWithResults(eq(oid)))
 				.thenReturn(Mono.just(DeleteResult.acknowledged(1)));
 
@@ -148,7 +148,7 @@ class TakeawayApplicationTest {
 
 	@Test
 	public void delete_notfound() {
-		String oid = ObjectId.get().toHexString();
+		ObjectId oid = ObjectId.get();
 		when(repository.deleteByIdWithResults(eq(oid)))
 				.thenReturn(Mono.just(DeleteResult.acknowledged(0)));
 
