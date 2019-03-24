@@ -12,12 +12,15 @@ import org.springframework.data.mongodb.core.convert.*;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.lang.NonNull;
+import uk.dioxic.mongotakeaway.TakeawayApplication;
+import uk.dioxic.mongotakeaway.repository.BaseRepositoryImpl;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 @Configuration
-@EnableReactiveMongoRepositories("uk.dioxic.mongotakeaway")
+@EnableReactiveMongoRepositories(basePackageClasses = TakeawayApplication.class,
+        repositoryBaseClass = BaseRepositoryImpl.class)
 public class MongoConfig {
 
     @Autowired

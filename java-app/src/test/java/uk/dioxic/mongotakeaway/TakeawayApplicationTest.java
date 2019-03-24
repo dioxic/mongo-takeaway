@@ -135,7 +135,7 @@ class TakeawayApplicationTest {
 	@Test
 	public void delete_exists() {
 		ObjectId oid = ObjectId.get();
-		when(repository.deleteByIdWithResults(eq(oid)))
+		when(repository.deleteByIdWithCount(eq(oid)))
 				.thenReturn(Mono.just(DeleteResult.acknowledged(1)));
 
 		webTestClient.delete().uri("/order/" + oid)
@@ -143,13 +143,13 @@ class TakeawayApplicationTest {
 				.exchange()
 				.expectStatus().isAccepted();
 
-		verify(repository).deleteByIdWithResults(eq(oid));
+		verify(repository).deleteByIdWithCount(eq(oid));
 	}
 
 	@Test
 	public void delete_notfound() {
 		ObjectId oid = ObjectId.get();
-		when(repository.deleteByIdWithResults(eq(oid)))
+		when(repository.deleteByIdWithCount(eq(oid)))
 				.thenReturn(Mono.just(DeleteResult.acknowledged(0)));
 
 		webTestClient.delete().uri("/order/" + oid)
@@ -157,7 +157,7 @@ class TakeawayApplicationTest {
 				.exchange()
 				.expectStatus().isNotFound();
 
-		verify(repository).deleteByIdWithResults(eq(oid));
+		verify(repository).deleteByIdWithCount(eq(oid));
 	}
 
 }

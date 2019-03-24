@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 @NoRepositoryBean
-public interface ExtendedRepository<T, ID> extends ReactiveMongoRepository<T, ID> {
+public interface BaseRepository<T, ID> extends ReactiveMongoRepository<T, ID> {
 
     Mono<UpdateResult> updateById(ID id, Map<String, ?> setMap);
 
