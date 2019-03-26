@@ -9,7 +9,7 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import reactor.core.publisher.Flux;
 import uk.dioxic.mongotakeaway.domain.Customer;
 import uk.dioxic.mongotakeaway.domain.Event;
-import uk.dioxic.mongotakeaway.domain.GlobalProperties;
+import uk.dioxic.mongotakeaway.domain.AppSettings;
 import uk.dioxic.mongotakeaway.domain.Order;
 import uk.dioxic.mongotakeaway.service.ChangeStreamSubscriber;
 
@@ -61,29 +61,4 @@ public class ChangeStreamConfig {
                 .build();
     }
 
-    @Bean("globalPropertiesFlux")
-    public Flux<ChangeStreamEvent<GlobalProperties>> orderFlux(ReactiveMongoTemplate reactiveTemplate) {
-        return reactiveTemplate.changeStream(ChangeStreamSubscriber.getCollectionName(GlobalProperties.class), ChangeStreamOptions.builder().build(), GlobalProperties.class);
-    }
-
-    @Bean("eventFlux")
-    public Flux<ChangeStreamEvent<Event>> eventFlux(ReactiveMongoTemplate reactiveTemplate) {
-        return reactiveTemplate.changeStream(ChangeStreamSubscriber.getCollectionName(Event.class),
-                ChangeStreamOptions.builder()
-                        .filter(newAggregation(match(where("operationType").in("insert"))))
-                        .build(),
-                Event.class);
-    }
-
-    @Bean("globalProperties")
-    public ChangeStreamSubscriber<GlobalProperties, String> globalPropertiesSubscriber(ReactiveMongoTemplate reactiveTemplate, ChangeStreamProperties properties) {
-        return ChangeStreamSubscriber.<GlobalProperties, String>builder()
-                .reactiveTemplate(reactiveTemplate)
-                .properties(properties)
-                .targetType(GlobalProperties.class)
-                .operationTypes(List.of("insert", "update", "delete", "replace"))
-                .returnFullDocumentOnUpdate(true)
-                .documentIdConverter(bson -> bson.asString().getValue())
-                .build();
-    }
 }

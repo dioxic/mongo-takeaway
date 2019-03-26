@@ -13,6 +13,7 @@ import static org.springframework.data.mongodb.core.query.Update.update;
 
 @Slf4j
 @Service
+@Deprecated
 public class CacheStateService {
 
     private ReactiveMongoTemplate reactiveTemplate;

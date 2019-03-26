@@ -52,7 +52,6 @@ public class RouteConfig {
                 .build();
     }
 
-
     @Bean
     CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();

@@ -1,15 +1,17 @@
 package uk.dioxic.mongotakeaway.event;
 
 import org.springframework.context.ApplicationEvent;
-import uk.dioxic.mongotakeaway.domain.GlobalProperties;
+import uk.dioxic.mongotakeaway.annotation.Polymorphic;
+import uk.dioxic.mongotakeaway.domain.AppSettings;
+import uk.dioxic.mongotakeaway.domain.Event;
 
 public class PropertiesChangedEvent extends ApplicationEvent {
-    public PropertiesChangedEvent(GlobalProperties globalProperties) {
-        super(globalProperties);
+    public PropertiesChangedEvent(AppSettings appSettings) {
+        super(appSettings);
     }
 
     @Override
-    public GlobalProperties getSource() {
-        return (GlobalProperties) super.getSource();
+    public AppSettings getSource() {
+        return (AppSettings) super.getSource();
     }
 }

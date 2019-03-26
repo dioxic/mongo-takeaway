@@ -1,9 +1,9 @@
 package uk.dioxic.mongotakeaway.repository;
 
 import org.springframework.stereotype.Repository;
-import uk.dioxic.mongotakeaway.domain.GlobalProperties;
+import uk.dioxic.mongotakeaway.domain.AppSettings;
 
 @Repository
-public interface PropertyRepository extends BaseRepository<GlobalProperties, String> {
+public interface PropertyRepository extends BaseRepository<AppSettings, String> {
 
 }

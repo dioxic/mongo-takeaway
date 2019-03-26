@@ -23,15 +23,8 @@ import static org.springframework.web.reactive.function.server.ServerResponse.*;
 @AllArgsConstructor
 public abstract class AbstractRestHandler<T, ID> {
 
-//    private final @NonNull MongoEntityInformation<T, ID> entityInformation;
     private final @NonNull BaseRepository<T, ID> repository;
     private final @NonNull Class<T> targetClass;
-
-//    AbstractRestHandler(ReactiveMongoRepository<T, ID> repository, BaseRepository<ID> exRepository,  Class<T> targetClass) {
-//        this.repository = repository;
-//        this.exRepository = exRepository;
-//        this.targetClass = targetClass;
-//    }
 
     abstract ID parseId(String id);
 

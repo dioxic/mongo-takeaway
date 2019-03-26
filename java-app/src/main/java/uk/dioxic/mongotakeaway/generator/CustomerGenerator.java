@@ -13,10 +13,10 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import uk.dioxic.faker.Faker;
 import uk.dioxic.mongotakeaway.domain.Customer;
-import uk.dioxic.mongotakeaway.domain.GlobalProperties;
+import uk.dioxic.mongotakeaway.domain.AppSettings;
+import uk.dioxic.mongotakeaway.domain.Event;
 import uk.dioxic.mongotakeaway.event.CustomersReloadedEvent;
 import uk.dioxic.mongotakeaway.event.PropertiesChangedEvent;
-import uk.dioxic.mongotakeaway.service.CacheStateService;
 import uk.dioxic.mongotakeaway.service.EventService;
 import uk.dioxic.mongotakeaway.service.GlobalLockService;
 
@@ -39,17 +39,18 @@ public class CustomerGenerator {
     private final Faker faker= Faker.instance(Locale.UK);
 
     private final @NotNull ReactiveMongoTemplate mongoTemplate;
-    private final @NotNull CacheStateService cacheStateService;
+//    private final @NotNull CacheStateService cacheStateService;
     private final @NotNull GlobalLockService lockService;
     private final @NotNull EventService eventService;
 
-    private GlobalProperties globalProperties;
+    private AppSettings appSettings;
 
     private boolean reload() {
-        if (cacheStateService.isDirty("CACHE") && lockService.tryLock("CUSTOMER")) {
+//        if (cacheStateService.isDirty("CACHE") && lockService.tryLock("CUSTOMER")) {
+        if (lockService.tryLock("CUSTOMER")) {
             try {
                 log.info("reloading");
-                if (globalProperties.generator().isDropCollection()) {
+                if (appSettings.dropCollection()) {
                     log.info("dropping customer collection");
                     mongoTemplate.dropCollection(Customer.class)
                             .doOnError(e -> log.error(e.getMessage(), e))
@@ -61,19 +62,19 @@ public class CustomerGenerator {
 
                 customers.clear();
 
-                if (globalProperties.generator().getCustomers() <= 0) {
+                if (appSettings.customers() <= 0) {
                     mongoTemplate.remove(Customer.class).all()
                             .doOnSuccess(res -> log.info("purged all customers"))
                             .block();
                 } else {
-                    mongoTemplate.find(new Query().with(Sort.by("id")).skip(globalProperties.generator().getCustomers()-1).limit(1), Customer.class)
+                    mongoTemplate.find(new Query().with(Sort.by("id")).skip(appSettings.customers()-1).limit(1), Customer.class)
                             .doOnError(e -> log.error(e.getMessage(), e))
                             .flatMap(customer -> mongoTemplate.remove(query(where("id").gt(customer.getId())), Customer.class))
                             .map(DeleteResult::getDeletedCount)
                             .filter(count -> count > 0)
                             .doOnNext(count -> log.info("purged {} superfluous customers", count))
                             .then(mongoTemplate.count(new Query(), Customer.class))
-                            .map(count -> globalProperties.generator().getCustomers() - count)
+                            .map(count -> appSettings.customers() - count)
                             .filter(count -> count > 0)
                             .flatMap(count -> customerFlux.take(count)
                                     .buffer(1000)
@@ -87,8 +88,8 @@ public class CustomerGenerator {
                             )
                             .block();
                 }
-                cacheStateService.markDirty("CACHE", false);
-                eventService.publishEvent(new CustomersReloadedEvent("reload"));
+//                cacheStateService.markDirty("CACHE", false);
+                eventService.publishEvent(CustomersReloadedEvent.class);
                 return true;
             } finally {
                 lockService.unlock("CUSTOMER");
@@ -129,7 +130,7 @@ public class CustomerGenerator {
     }
 
     private void refresh() {
-        mongoTemplate.find(new Query().limit(globalProperties.generator().getCustomers()), Customer.class)
+        mongoTemplate.find(new Query().limit(appSettings.customers()), Customer.class)
                 .doOnError(e -> log.error(e.getMessage(), e))
                 .collectList()
                 .doOnSuccess(customers::addAll)
@@ -140,10 +141,8 @@ public class CustomerGenerator {
     @Async
     @EventListener
     public void handlePropertiesChanged(PropertiesChangedEvent event) {
-        globalProperties = event.getSource();
-        cacheStateService.markDirty("CACHE", true);
-        if (!reload())
-            refresh();
+        appSettings = event.getSource();
+        reload();
     }
 
     @Async
@@ -151,6 +150,5 @@ public class CustomerGenerator {
     public void handleCustomersReloaded(CustomersReloadedEvent event) {
         refresh();
     }
-
 
 }

@@ -13,7 +13,7 @@ import java.io.IOException;
 public class ObjectIdJsonDeserializer extends JsonDeserializer<ObjectId> {
 
     @Override
-    public ObjectId deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+    public ObjectId deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
         return new ObjectId(jsonParser.getValueAsString());
     }
 
