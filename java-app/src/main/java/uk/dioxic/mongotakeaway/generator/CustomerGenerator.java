@@ -39,14 +39,12 @@ public class CustomerGenerator {
     private final Faker faker= Faker.instance(Locale.UK);
 
     private final @NotNull ReactiveMongoTemplate mongoTemplate;
-//    private final @NotNull CacheStateService cacheStateService;
     private final @NotNull GlobalLockService lockService;
     private final @NotNull EventService eventService;
 
     private AppSettings appSettings;
 
     private boolean reload() {
-//        if (cacheStateService.isDirty("CACHE") && lockService.tryLock("CUSTOMER")) {
         if (lockService.tryLock("CUSTOMER")) {
             try {
                 log.info("reloading");
@@ -78,17 +76,13 @@ public class CustomerGenerator {
                             .filter(count -> count > 0)
                             .flatMap(count -> customerFlux.take(count)
                                     .buffer(1000)
-                                    .flatMap(mongoTemplate::insertAll)
-                                    .onErrorContinue((e, o) -> {
-                                        e.printStackTrace();
-                                        log.warn("error [{}] writing customer", e.getMessage());
-                                    })
+                                    .flatMap(mongoTemplate::insertAll, 2)
+                                    .onErrorContinue((e, o) -> log.warn("error [{}] writing customer", e.getMessage()))
                                     .reduce(0, (size, customer) -> size + 1)
                                     .doOnNext(list -> log.info("created {} customers", list))
                             )
                             .block();
                 }
-//                cacheStateService.markDirty("CACHE", false);
                 eventService.publishEvent(CustomersReloadedEvent.class);
                 return true;
             } finally {

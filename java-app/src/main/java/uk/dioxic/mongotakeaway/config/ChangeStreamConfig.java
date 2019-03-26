@@ -19,6 +19,7 @@ import java.util.Objects;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
+import static uk.dioxic.mongotakeaway.service.ChangeStreamSubscriber.getDocumentKeyAsObjectId;
 
 @Configuration
 public class ChangeStreamConfig {
@@ -57,7 +58,7 @@ public class ChangeStreamConfig {
                 .properties(properties)
                 .targetType(Customer.class)
                 .operationTypes(List.of("insert", "update", "delete"))
-                .postFilter((id -> cse -> id.equals(ChangeStreamSubscriber.getDocumentKeyAsObjectId(cse))))
+                .postFilter((id -> cse -> id.equals(getDocumentKeyAsObjectId(cse))))
                 .build();
     }
 
