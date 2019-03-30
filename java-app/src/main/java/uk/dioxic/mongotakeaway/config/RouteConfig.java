@@ -9,6 +9,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import uk.dioxic.mongotakeaway.web.CustomerHandler;
+import uk.dioxic.mongotakeaway.web.GeoHandler;
 import uk.dioxic.mongotakeaway.web.OrderHandler;
 
 import java.util.List;
@@ -30,6 +31,13 @@ public class RouteConfig {
                 .POST("/order", accept(APPLICATION_JSON), orderHandler::create)
                 .DELETE("/order/{id}", orderHandler::delete)
                 .PATCH("/order/{id}", orderHandler::modify)
+                .build();
+    }
+
+    @Bean("geoRoute")
+    public RouterFunction<ServerResponse> geoRoute(GeoHandler geoHandler) {
+        return route()
+                .GET("/geo", accept(APPLICATION_JSON), geoHandler::calculateDistanceFromPostcode)
                 .build();
     }
 

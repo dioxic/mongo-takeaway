@@ -50,3 +50,5 @@ package/
 .env.production.local
 
 npm-debug.log*
+
+postcodes-full.dat

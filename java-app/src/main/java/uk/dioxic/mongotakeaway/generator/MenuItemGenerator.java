@@ -37,7 +37,7 @@ public class MenuItemGenerator {
         }
     }
 
-    public synchronized void initialiseDatabase() {
+    private synchronized void initialiseDatabase() {
         if (!dbInitialised && properties.isDropCollection()) {
             log.info("dropping existing menu items");
             mongoTemplate.dropCollection(MenuItem.class)
