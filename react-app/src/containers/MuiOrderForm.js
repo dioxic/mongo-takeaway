@@ -80,7 +80,7 @@ const MuiOrderForm = ({
 	saving
   }) => {
 	return (<Form>
-	  <Typography variant="h6" gutterBottom>
+	  <Typography variant="h6" align="center" gutterBottom>
 			New Order
 	  </Typography>
 	  <Grid container spacing={32}>

@@ -1,13 +1,16 @@
 import React from 'react';
 import logo from '../logo.svg';
 import './App.css';
-import Footer from './Footer'
+import Footer from './Footer';
 import OrderForm from '../containers/OrderForm';
 import VisibleOrderList from '../containers/VisibleOrderList';
 import PropTypes from 'prop-types';
 import Grid from '@material-ui/core/Grid';
 import { withStyles } from '@material-ui/core/styles';
 import Checkout from '../checkout';
+import MenuList from './MenuList';
+import MenuSectionList from './MenuSectionList';
+//import SwitchListSecondary from './SwitchListSecondary';
 
 const styles = () => ({
   root: {
@@ -29,7 +32,7 @@ function App({ classes }) {
             <OrderForm/>
           </Grid>
           <Grid item xs={6}>
-            <Checkout/>
+            <MenuSectionList/>
           </Grid>          
           <Grid item xs={6}>
             <VisibleOrderList />
