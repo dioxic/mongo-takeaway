@@ -8,9 +8,7 @@ import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
-import uk.dioxic.mongotakeaway.web.CustomerHandler;
-import uk.dioxic.mongotakeaway.web.GeoHandler;
-import uk.dioxic.mongotakeaway.web.OrderHandler;
+import uk.dioxic.mongotakeaway.web.*;
 
 import java.util.List;
 
@@ -24,36 +22,58 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
 public class RouteConfig {
 
     @Bean("orderRoute")
-    public RouterFunction<ServerResponse> orderRoute(OrderHandler orderHandler) {
+    public RouterFunction<ServerResponse> orderRoute(OrderHandler handler) {
         return route()
-                .GET("/order/{id}", accept(APPLICATION_JSON), orderHandler::get)
-                .GET("/order", accept(APPLICATION_JSON), orderHandler::list)
-                .POST("/order", accept(APPLICATION_JSON), orderHandler::create)
-                .DELETE("/order/{id}", orderHandler::delete)
-                .PATCH("/order/{id}", orderHandler::modify)
+                .GET("/order/{id}", accept(APPLICATION_JSON), handler::get)
+                .GET("/order", accept(APPLICATION_JSON), handler::list)
+                .POST("/order", accept(APPLICATION_JSON), handler::create)
+                .DELETE("/order/{id}", handler::delete)
+                .PATCH("/order/{id}", handler::modify)
                 .build();
     }
 
     @Bean("geoRoute")
-    public RouterFunction<ServerResponse> geoRoute(GeoHandler geoHandler) {
+    public RouterFunction<ServerResponse> geoRoute(GeoHandler handler) {
         return route()
-                .GET("/geo", accept(APPLICATION_JSON), geoHandler::calculateDistanceFromPostcode)
+                .GET("/geo", accept(APPLICATION_JSON), handler::calculateDistanceFromPostcode)
                 .build();
     }
 
     @Bean("customerRoute")
-    public RouterFunction<ServerResponse> customerRoute(CustomerHandler customerHandler) {
+    public RouterFunction<ServerResponse> customerRoute(CustomerHandler handler) {
         return route()
-                .GET("/customer/{id}", accept(APPLICATION_JSON), customerHandler::get)
-                .GET("/customer", accept(APPLICATION_JSON), customerHandler::list)
-                .POST("/customer", accept(APPLICATION_JSON), customerHandler::create)
-                .DELETE("/customer/{id}", customerHandler::delete)
-                .PATCH("/customer/{id}", customerHandler::modify)
+                .GET("/customer/{id}", accept(APPLICATION_JSON), handler::get)
+                .GET("/customer", accept(APPLICATION_JSON), handler::list)
+                .POST("/customer", accept(APPLICATION_JSON), handler::create)
+                .DELETE("/customer/{id}", handler::delete)
+                .PATCH("/customer/{id}", handler::modify)
+                .build();
+    }
+
+    @Bean("restaurantRoute")
+    public RouterFunction<ServerResponse> restaurantRoute(RestaurantHandler handler) {
+        return route()
+                .GET("/restaurant/{id}", accept(APPLICATION_JSON), handler::get)
+                .GET("/restaurant", accept(APPLICATION_JSON), handler::list)
+                .POST("/restaurant", accept(APPLICATION_JSON), handler::create)
+                .DELETE("/restaurant/{id}", handler::delete)
+                .PATCH("/restaurant/{id}", handler::modify)
+                .build();
+    }
+
+    @Bean("menuRoute")
+    public RouterFunction<ServerResponse> menuRoute(MenuHandler handler) {
+        return route()
+                .GET("/menu/{id}", accept(APPLICATION_JSON), handler::get)
+                .GET("/menu", accept(APPLICATION_JSON), handler::list)
+                .POST("/menu", accept(APPLICATION_JSON), handler::create)
+                .DELETE("/menu/{id}", handler::delete)
+                .PATCH("/menu/{id}", handler::modify)
                 .build();
     }
 
     @Bean("defaultRoute")
-    public RouterFunction<ServerResponse> defaultRoute(CustomerHandler customerHandler) {
+    public RouterFunction<ServerResponse> defaultRoute() {
         return route()
                 .GET("/", req -> ok().body(fromResource(new ClassPathResource("static/client-websocket.html"))))
                 .GET("/react", req -> ok().body(fromResource(new ClassPathResource("static/index.html"))))

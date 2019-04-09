@@ -2,9 +2,6 @@ package uk.dioxic.mongotakeaway.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import uk.dioxic.mongotakeaway.domain.Postcode;
@@ -47,7 +44,7 @@ public class GeoService {
         return meters / 1609.344d;
     }
 
-    public Double distance(Postcode postcode1, Postcode postcode2) {
+    public static Double distance(Postcode postcode1, Postcode postcode2) {
         return distance(postcode1.getLatitude(), postcode2.getLatitude(), postcode1.getLongitude(), postcode2.getLongitude(), 0, 0);
     }
 
